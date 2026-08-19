@@ -1,0 +1,442 @@
+// Prisma schema - Control y Registro de Actas Parroquiales (multi-iglesia)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/** Acciones del sistema que se le pueden otorgar a un rol. SUPERADMIN (nivel
+ * diócesis) y la administración de iglesias/usuarios/roles no pasan por
+ * aquí: son fijas, no delegables mediante permisos de rol. */
+enum Permiso {
+  REGISTRAR_ACTAS // registrar, reimprimir y anular actas
+  CONSULTAR_ACTAS // ver el listado y detalle de actas
+  PUNTO_DE_VENTA // vender productos/servicios
+  ADMINISTRAR_CATALOGO // catálogo, ajuste de inventario, transferencia de inventario
+  CONFIGURAR // precios de registro/reimpresión por tipo de acta
+}
+
+enum TipoActa {
+  BAUTIZO
+  PRIMERA_COMUNION
+  CONFIRMACION
+  MATRIMONIO
+}
+
+enum ConceptoPago {
+  REGISTRO
+  REIMPRESION
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  TRANSFERENCIA
+}
+
+enum TipoProducto {
+  PRODUCTO // tiene inventario (stock)
+  SERVICIO // no maneja inventario (ej. misas)
+}
+
+model Iglesia {
+  id        String   @id @default(cuid())
+  nombre    String
+  diocesis  String?
+  direccion String?
+  ciudad    String?
+  estado    String?
+  pais      String   @default("México")
+  telefono  String?
+  email     String?
+  activa    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuarios       Usuario[]
+  actas          Acta[]
+  configuraciones ConfiguracionActa[]
+  productos      Producto[]
+  ventas         Venta[]
+  ajustesInventario AjusteInventario[]
+  transferenciasComoOrigen  TransferenciaInventario[] @relation("TransferenciasComoOrigen")
+  transferenciasComoDestino TransferenciaInventario[] @relation("TransferenciasComoDestino")
+
+  @@map("iglesias")
+}
+
+model Producto {
+  id                 String       @id @default(cuid())
+  codigo             String?
+  nombre             String
+  descripcion        String?
+  precio             Float
+  tipo               TipoProducto @default(SERVICIO)
+  stock              Int? // solo aplica cuando tipo = PRODUCTO; null para servicios
+  requiereComentario Boolean      @default(false)
+  activo             Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  iglesiaId String
+  iglesia   Iglesia @relation(fields: [iglesiaId], references: [id])
+
+  ventaItems VentaItem[]
+  ajustesInventarioItems AjusteInventarioItem[]
+  transferenciasComoOrigen  TransferenciaInventarioItem[] @relation("ProductoOrigenTransferencia")
+  transferenciasComoDestino TransferenciaInventarioItem[] @relation("ProductoDestinoTransferencia")
+
+  @@unique([iglesiaId, codigo])
+  @@index([iglesiaId])
+  @@map("productos")
+}
+
+/** Transacción de ajuste de inventario: una entrada de almacén con una o
+ * varias partidas (productos), cada una es un lote. Solo agrega existencias;
+ * siempre queda registrado quién la hizo y cuándo. `fecha` es la fecha del
+ * lote (para consumo FIFO en ventas), distinta de `createdAt` (auditoría). */
+model AjusteInventario {
+  id         String   @id @default(cuid())
+  fecha      DateTime @default(now())
+  comentario String?
+  createdAt  DateTime @default(now())
+
+  iglesiaId String
+  iglesia   Iglesia @relation(fields: [iglesiaId], references: [id])
+
+  realizadoPorId String?
+  realizadoPor   Usuario? @relation(fields: [realizadoPorId], references: [id])
+
+  items AjusteInventarioItem[]
+
+  @@index([iglesiaId])
+  @@index([iglesiaId, fecha])
+  @@map("ajustes_inventario")
+}
+
+/** Un lote de inventario: lo que entró en un ajuste para un producto.
+ * `cantidadDisponible` se va consumiendo FIFO (por `ajuste.fecha`) conforme
+ * se vende; `cantidad` conserva el total original recibido. */
+model AjusteInventarioItem {
+  id                 String @id @default(cuid())
+  cantidad           Int // cantidad original recibida en este lote
+  cantidadDisponible Int // lo que queda por vender de este lote
+  precioCompra       Float? // costo unitario al que se compró
+  precioVenta        Float? // precio unitario de venta al momento del ajuste
+
+  ajusteId String
+  ajuste   AjusteInventario @relation(fields: [ajusteId], references: [id], onDelete: Cascade)
+
+  productoId String
+  producto   Producto @relation(fields: [productoId], references: [id])
+
+  consumos VentaItemLote[]
+  transferenciasComoOrigen TransferenciaLote[] @relation("LoteOrigenTransferencia")
+  transferenciasComoDestino TransferenciaLote[] @relation("LoteDestinoTransferencia")
+
+  @@index([productoId, cantidadDisponible])
+  @@map("ajustes_inventario_items")
+}
+
+model Venta {
+  id        String     @id @default(cuid())
+  total     Float
+  metodo    MetodoPago
+  createdAt DateTime   @default(now())
+
+  iglesiaId String
+  iglesia   Iglesia @relation(fields: [iglesiaId], references: [id])
+
+  vendidoPorId String?
+  vendidoPor   Usuario? @relation(fields: [vendidoPorId], references: [id])
+
+  items VentaItem[]
+
+  @@index([iglesiaId])
+  @@map("ventas")
+}
+
+model VentaItem {
+  id             String  @id @default(cuid())
+  nombreProducto String
+  precioUnitario Float
+  cantidad       Int
+  subtotal       Float
+  comentario     String?
+
+  ventaId String
+  venta   Venta @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+
+  productoId String?
+  producto   Producto? @relation(fields: [productoId], references: [id], onDelete: SetNull)
+
+  lotesConsumidos VentaItemLote[]
+
+  @@map("venta_items")
+}
+
+/** De qué lote(s) salió una venta (consumo FIFO) y a qué costo, para poder
+ * calcular utilidad real más adelante. */
+model VentaItemLote {
+  id            String @id @default(cuid())
+  cantidad      Int
+  costoUnitario Float?
+
+  ventaItemId String
+  ventaItem   VentaItem @relation(fields: [ventaItemId], references: [id], onDelete: Cascade)
+
+  loteId String
+  lote   AjusteInventarioItem @relation(fields: [loteId], references: [id])
+
+  @@map("venta_item_lotes")
+}
+
+/** Transferencia de inventario entre dos iglesias. Es otra forma (además del
+ * ajuste) de agregar stock a productos: descuenta lotes elegidos a mano en el
+ * origen y crea lotes nuevos (con el mismo costo) en el destino. */
+model TransferenciaInventario {
+  id         String   @id @default(cuid())
+  fecha      DateTime
+  comentario String?
+  createdAt  DateTime @default(now())
+
+  iglesiaOrigenId String
+  iglesiaOrigen   Iglesia @relation("TransferenciasComoOrigen", fields: [iglesiaOrigenId], references: [id])
+
+  iglesiaDestinoId String
+  iglesiaDestino   Iglesia @relation("TransferenciasComoDestino", fields: [iglesiaDestinoId], references: [id])
+
+  realizadoPorId String?
+  realizadoPor   Usuario? @relation(fields: [realizadoPorId], references: [id])
+
+  items TransferenciaInventarioItem[]
+
+  @@index([iglesiaOrigenId])
+  @@index([iglesiaDestinoId])
+  @@map("transferencias_inventario")
+}
+
+model TransferenciaInventarioItem {
+  id       String @id @default(cuid())
+  cantidad Int // total transferido de este producto
+
+  transferenciaId String
+  transferencia   TransferenciaInventario @relation(fields: [transferenciaId], references: [id], onDelete: Cascade)
+
+  productoOrigenId String
+  productoOrigen   Producto @relation("ProductoOrigenTransferencia", fields: [productoOrigenId], references: [id])
+
+  productoDestinoId String
+  productoDestino   Producto @relation("ProductoDestinoTransferencia", fields: [productoDestinoId], references: [id])
+
+  lotes TransferenciaLote[]
+
+  @@map("transferencias_inventario_items")
+}
+
+/** De qué lote de origen (elegido a mano) salió cada parte de la
+ * transferencia, y a qué lote nuevo del destino dio lugar. */
+model TransferenciaLote {
+  id       String @id @default(cuid())
+  cantidad Int
+
+  itemId String
+  item   TransferenciaInventarioItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  loteOrigenId String
+  loteOrigen   AjusteInventarioItem @relation("LoteOrigenTransferencia", fields: [loteOrigenId], references: [id])
+
+  loteDestinoId String
+  loteDestino   AjusteInventarioItem @relation("LoteDestinoTransferencia", fields: [loteDestinoId], references: [id])
+
+  @@map("transferencia_lotes")
+}
+
+model ConfiguracionActa {
+  id     String   @id @default(cuid())
+  tipo   TipoActa
+
+  fojasPorLibro   Int @default(200)
+  partidasPorFoja Int @default(4)
+
+  precioRegistro    Float?
+  precioReimpresion Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  iglesiaId String
+  iglesia   Iglesia @relation(fields: [iglesiaId], references: [id])
+
+  @@unique([iglesiaId, tipo])
+  @@map("configuraciones_acta")
+}
+
+/** Rol personalizado, independiente de iglesias/diócesis: el admin lo crea y
+ * le asigna permisos, y luego se lo asigna a los usuarios que quiera. El rol
+ * marcado `esAdministrador` es fijo (siempre existe exactamente uno, con
+ * todos los permisos, y no se puede borrar ni degradar). */
+model Rol {
+  id              String    @id @default(cuid())
+  nombre          String    @unique
+  esAdministrador Boolean   @default(false)
+  permisos        Permiso[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  usuarios Usuario[]
+
+  @@map("roles")
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  nombre       String
+  email        String   @unique
+  passwordHash String
+  // SUPERADMIN es un nivel especial de diócesis, fuera del sistema de roles
+  // configurables: ve y administra todas las iglesias.
+  esSuperAdmin Boolean  @default(false)
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rolId String?
+  rol   Rol?    @relation(fields: [rolId], references: [id])
+
+  iglesiaId String?
+  iglesia   Iglesia? @relation(fields: [iglesiaId], references: [id])
+
+  actasCreadas Acta[] @relation("ActaCreadaPor")
+  pagosCobrados Pago[]
+  ventasRealizadas Venta[]
+  ajustesInventarioRealizados AjusteInventario[]
+  transferenciasRealizadas TransferenciaInventario[]
+
+  @@map("usuarios")
+}
+
+model Acta {
+  id         String   @id @default(cuid())
+  tipo       TipoActa
+  libro      String // número de libro (cada libro reinicia su numeración de partidas)
+  numeroActa Int // número de partida, consecutivo dentro del libro
+  foja       Int // hoja del libro; se calcula como ceil(numeroActa / 4)
+  posicionEnFoja Int // posición de la partida dentro de la foja (1 a 4)
+  fecha        DateTime // fecha del sacramento
+  lugar        String?
+  ministro     String? // sacerdote/celebrante que oficia
+  observaciones String?
+  anulada      Boolean   @default(false)
+  motivoAnulacion String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  iglesiaId String
+  iglesia   Iglesia @relation(fields: [iglesiaId], references: [id])
+
+  creadoPorId String?
+  creadoPor   Usuario? @relation("ActaCreadaPor", fields: [creadoPorId], references: [id])
+
+  bautizo          Bautizo?
+  primeraComunion  PrimeraComunion?
+  confirmacion     Confirmacion?
+  matrimonio       Matrimonio?
+  pagos            Pago[]
+
+  @@unique([iglesiaId, tipo, libro, numeroActa])
+  @@index([iglesiaId, tipo])
+  @@index([iglesiaId, tipo, libro, foja])
+  @@map("actas")
+}
+
+model Pago {
+  id        String       @id @default(cuid())
+  concepto  ConceptoPago
+  monto     Float
+  metodo    MetodoPago
+  createdAt DateTime     @default(now())
+
+  actaId String
+  acta   Acta   @relation(fields: [actaId], references: [id], onDelete: Cascade)
+
+  cobradoPorId String?
+  cobradoPor   Usuario? @relation(fields: [cobradoPorId], references: [id])
+
+  @@index([actaId])
+  @@map("pagos")
+}
+
+model Bautizo {
+  id                String  @id @default(cuid())
+  actaId            String  @unique
+  acta              Acta    @relation(fields: [actaId], references: [id], onDelete: Cascade)
+
+  nombreCompleto    String
+  fechaNacimiento   DateTime?
+  lugarNacimiento   String?
+  nombrePadre       String?
+  nombreMadre       String?
+  padrino           String?
+  madrina           String?
+
+  @@map("bautizos")
+}
+
+model PrimeraComunion {
+  id                String  @id @default(cuid())
+  actaId            String  @unique
+  acta              Acta    @relation(fields: [actaId], references: [id], onDelete: Cascade)
+
+  nombreCompleto    String
+  fechaNacimiento   DateTime?
+  nombrePadre       String?
+  nombreMadre       String?
+  padrino           String?
+  madrina           String?
+  catequista        String?
+
+  @@map("primeras_comuniones")
+}
+
+model Confirmacion {
+  id                String  @id @default(cuid())
+  actaId            String  @unique
+  acta              Acta    @relation(fields: [actaId], references: [id], onDelete: Cascade)
+
+  nombreCompleto    String
+  fechaNacimiento   DateTime?
+  nombrePadre       String?
+  nombreMadre       String?
+  padrino           String?
+  madrina           String?
+  obispoMinistro    String?
+
+  @@map("confirmaciones")
+}
+
+model Matrimonio {
+  id                     String  @id @default(cuid())
+  actaId                 String  @unique
+  acta                   Acta    @relation(fields: [actaId], references: [id], onDelete: Cascade)
+
+  nombreEsposo           String
+  fechaNacimientoEsposo  DateTime?
+  padreEsposo            String?
+  madreEsposo            String?
+
+  nombreEsposa           String
+  fechaNacimientoEsposa  DateTime?
+  padreEsposa            String?
+  madreEsposa            String?
+
+  testigo1               String?
+  testigo2               String?
+  actaCivilNumero        String?
+
+  @@map("matrimonios")
+}

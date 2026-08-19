@@ -1,0 +1,270 @@
+"use client";
+
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { crearActa } from "../../actions";
+import { Campo, Seccion } from "@/components/form-fields";
+import { CobroModal } from "@/components/cobro-modal";
+import { PARTIDAS_POR_FOJA_DEFECTO } from "@/lib/libro";
+import type { TipoActa } from "@/lib/tipos-acta";
+import type { Iglesia } from "@prisma/client";
+
+const NUEVO_LIBRO = "__nuevo__";
+
+type LibroInfo = { libro: string; siguientePartida: number; lleno: boolean };
+
+export function ActaForm({
+  tipo,
+  iglesias,
+  libros,
+  partidasPorFoja = PARTIDAS_POR_FOJA_DEFECTO,
+  precioRegistro,
+}: {
+  tipo: TipoActa;
+  iglesias: Iglesia[];
+  libros: LibroInfo[];
+  partidasPorFoja?: number;
+  precioRegistro?: number | null;
+}) {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const ventanaRef = useRef<Window | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [mostrarCobro, setMostrarCobro] = useState(false);
+  const [metodoPago, setMetodoPago] = useState("EFECTIVO");
+  const libroDisponible = [...libros].reverse().find((l) => !l.lleno);
+  const [libroSeleccionado, setLibroSeleccionado] = useState(
+    libroDisponible ? libroDisponible.libro : NUEVO_LIBRO,
+  );
+  const [nuevoLibro, setNuevoLibro] = useState("");
+
+  const escribiendoLibroNuevo = libros.length === 0 || libroSeleccionado === NUEVO_LIBRO;
+  const libro = escribiendoLibroNuevo ? nuevoLibro.trim() : libroSeleccionado;
+  const infoLibroSeleccionado = libros.find((l) => l.libro === libroSeleccionado);
+  const siguientePartida = escribiendoLibroNuevo ? 1 : infoLibroSeleccionado?.siguientePartida ?? 1;
+  const foja = Math.ceil(siguientePartida / partidasPorFoja);
+  const posicion = siguientePartida - (foja - 1) * partidasPorFoja;
+  const libroSeleccionadoLleno = !escribiendoLibroNuevo && infoLibroSeleccionado?.lleno;
+
+  const requierePago = !!precioRegistro && precioRegistro > 0;
+
+  function guardar() {
+    if (!formRef.current) return;
+    const formData = new FormData(formRef.current);
+    startTransition(async () => {
+      const resultado = await crearActa(formData);
+      if ("error" in resultado) {
+        ventanaRef.current?.close();
+        ventanaRef.current = null;
+        setError(resultado.error);
+        return;
+      }
+      setError(null);
+      setMostrarCobro(false);
+      if (ventanaRef.current) {
+        ventanaRef.current.location.href = `/api/actas/${resultado.actaId}/pdf`;
+      } else {
+        window.open(`/api/actas/${resultado.actaId}/pdf`, "_blank");
+      }
+      router.push(`/actas/${resultado.actaId}`);
+    });
+  }
+
+  function alHacerClicGuardar() {
+    if (!formRef.current?.reportValidity()) return;
+    // Se abre la pestaña ya (dentro del gesto del usuario) para que el PDF se
+    // pueda imprimir automáticamente al guardar, sin que el navegador la bloquee.
+    ventanaRef.current = window.open("", "_blank");
+    if (requierePago) {
+      setMostrarCobro(true);
+    } else {
+      guardar();
+    }
+  }
+
+  return (
+    <form ref={formRef} className="space-y-4">
+      <input type="hidden" name="tipo" value={tipo} />
+      <input type="hidden" name="libro" value={libro} />
+      <input type="hidden" name="metodoPago" value={metodoPago} />
+      {iglesias.length > 0 && (
+        <Seccion titulo="Iglesia">
+          <div>
+            <label htmlFor="iglesiaId" className="block text-xs font-medium text-slate-600">
+              Iglesia <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="iglesiaId"
+              name="iglesiaId"
+              required
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            >
+              {iglesias.map((iglesia) => (
+                <option key={iglesia.id} value={iglesia.id}>
+                  {iglesia.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Seccion>
+      )}
+
+      <Seccion titulo="Datos del acta">
+        <div>
+          <label className="block text-xs font-medium text-slate-600">
+            Libro <span className="text-red-500">*</span>
+          </label>
+          {libros.length > 0 && (
+            <select
+              value={libroSeleccionado}
+              onChange={(e) => setLibroSeleccionado(e.target.value)}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            >
+              {[...libros].reverse().map((l) => (
+                <option key={l.libro} value={l.libro} disabled={l.lleno}>
+                  Libro {l.libro} {l.lleno ? "(lleno)" : `(próxima partida: ${l.siguientePartida})`}
+                </option>
+              ))}
+              <option value={NUEVO_LIBRO}>+ Abrir un libro nuevo</option>
+            </select>
+          )}
+          {escribiendoLibroNuevo && (
+            <input
+              type="text"
+              required
+              autoFocus={libros.length > 0}
+              value={nuevoLibro}
+              onChange={(e) => setNuevoLibro(e.target.value)}
+              placeholder="Número o identificador del libro, ej. 5"
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            />
+          )}
+          {libroSeleccionadoLleno ? (
+            <p className="mt-1 text-xs text-red-600">
+              Este libro ya está lleno. Elige &quot;Abrir un libro nuevo&quot; para continuar.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-slate-500">
+              Se asignará automáticamente la partida No. {siguientePartida} — Foja {foja}, posición{" "}
+              {posicion} de {partidasPorFoja}
+            </p>
+          )}
+        </div>
+        <Campo label="Fecha del sacramento" name="fecha" type="date" required />
+        <Campo label="Lugar" name="lugar" />
+        <Campo label="Ministro / celebrante" name="ministro" />
+      </Seccion>
+
+      {tipo === "BAUTIZO" && (
+        <Seccion titulo="Datos del bautizado">
+          <Campo label="Nombre completo" name="nombreCompleto" required />
+          <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
+          <Campo label="Lugar de nacimiento" name="lugarNacimiento" />
+          <Campo label="Nombre del padre" name="nombrePadre" />
+          <Campo label="Nombre de la madre" name="nombreMadre" />
+          <Campo label="Padrino" name="padrino" />
+          <Campo label="Madrina" name="madrina" />
+        </Seccion>
+      )}
+
+      {tipo === "PRIMERA_COMUNION" && (
+        <Seccion titulo="Datos del comulgante">
+          <Campo label="Nombre completo" name="nombreCompleto" required />
+          <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
+          <Campo label="Nombre del padre" name="nombrePadre" />
+          <Campo label="Nombre de la madre" name="nombreMadre" />
+          <Campo label="Padrino" name="padrino" />
+          <Campo label="Madrina" name="madrina" />
+          <Campo label="Catequista" name="catequista" />
+        </Seccion>
+      )}
+
+      {tipo === "CONFIRMACION" && (
+        <Seccion titulo="Datos del confirmando">
+          <Campo label="Nombre completo" name="nombreCompleto" required />
+          <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
+          <Campo label="Nombre del padre" name="nombrePadre" />
+          <Campo label="Nombre de la madre" name="nombreMadre" />
+          <Campo label="Padrino" name="padrino" />
+          <Campo label="Madrina" name="madrina" />
+          <Campo label="Obispo / ministro" name="obispoMinistro" />
+        </Seccion>
+      )}
+
+      {tipo === "MATRIMONIO" && (
+        <>
+          <Seccion titulo="Datos del esposo">
+            <Campo label="Nombre completo" name="nombreEsposo" required />
+            <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposo" type="date" />
+            <Campo label="Nombre del padre" name="padreEsposo" />
+            <Campo label="Nombre de la madre" name="madreEsposo" />
+          </Seccion>
+          <Seccion titulo="Datos de la esposa">
+            <Campo label="Nombre completo" name="nombreEsposa" required />
+            <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposa" type="date" />
+            <Campo label="Nombre del padre" name="padreEsposa" />
+            <Campo label="Nombre de la madre" name="madreEsposa" />
+          </Seccion>
+          <Seccion titulo="Testigos y acta civil">
+            <Campo label="Testigo 1" name="testigo1" />
+            <Campo label="Testigo 2" name="testigo2" />
+            <Campo label="No. de acta civil" name="actaCivilNumero" />
+          </Seccion>
+        </>
+      )}
+
+      <Seccion titulo="Observaciones">
+        <div className="sm:col-span-2">
+          <label htmlFor="observaciones" className="block text-xs font-medium text-slate-600">
+            Observaciones
+          </label>
+          <textarea
+            id="observaciones"
+            name="observaciones"
+            rows={3}
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+        </div>
+      </Seccion>
+
+      {error && !mostrarCobro && <p className="text-sm text-red-600">{error}</p>}
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          disabled={pending || !!libroSeleccionadoLleno}
+          onClick={alHacerClicGuardar}
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+        >
+          {pending ? "Guardando..." : "Guardar acta"}
+        </button>
+      </div>
+
+      {mostrarCobro && (
+        <CobroModal
+          titulo="Confirma el cobro de registro"
+          precio={precioRegistro ?? 0}
+          metodoPago={metodoPago}
+          onMetodoPagoChange={setMetodoPago}
+          onCancelar={() => {
+            ventanaRef.current?.close();
+            ventanaRef.current = null;
+            setMostrarCobro(false);
+          }}
+          error={error}
+          botonConfirmar={
+            <button
+              type="button"
+              onClick={guardar}
+              disabled={pending}
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              {pending ? "Guardando..." : "Confirmar cobro y guardar"}
+            </button>
+          }
+        />
+      )}
+    </form>
+  );
+}
