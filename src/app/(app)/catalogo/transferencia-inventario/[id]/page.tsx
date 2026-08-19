@@ -69,7 +69,7 @@ export default async function DetalleTransferenciaInventarioPage({
 
       <div className="space-y-4">
         {transferencia.items.map((item) => (
-          <div key={item.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div key={item.id} className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
             <div className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-sm">
               <span className="font-medium text-slate-900">{item.productoOrigen.nombre}</span>
               <span className="text-slate-500"> → {item.productoDestino.nombre}</span>

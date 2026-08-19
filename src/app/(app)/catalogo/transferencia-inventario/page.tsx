@@ -53,7 +53,7 @@ export default async function TransferenciaInventarioPage() {
 
       <div>
         <h2 className="mb-2 text-sm font-semibold text-slate-900">Transferencias recientes</h2>
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
