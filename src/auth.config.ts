@@ -6,6 +6,7 @@ import type { NextAuthConfig } from "next-auth";
  * que solo se importa desde código que corre en runtime Node.js.
  */
 export const authConfig = {
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
