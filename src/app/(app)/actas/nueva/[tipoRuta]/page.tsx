@@ -22,6 +22,11 @@ export default async function NuevaActaTipoPage({
       ? await prisma.iglesia.findMany({ where: { activa: true }, orderBy: { nombre: "asc" } })
       : [];
 
+  const ministros = await prisma.ministro.findMany({
+    where: sesion.esSuperAdmin ? { activo: true } : { activo: true, iglesiaId: sesion.iglesiaId! },
+    orderBy: { nombre: "asc" },
+  });
+
   const [libros, config] = sesion.iglesiaId
     ? await Promise.all([
         obtenerLibrosExistentes(sesion.iglesiaId, tipo),
@@ -67,6 +72,7 @@ export default async function NuevaActaTipoPage({
       <ActaForm
         tipo={tipo}
         iglesias={iglesias}
+        ministros={ministros}
         libros={libros}
         partidasPorFoja={config?.partidasPorFoja}
         precioRegistro={config?.precioRegistro}

@@ -65,6 +65,7 @@ model Iglesia {
   ajustesInventario AjusteInventario[]
   transferenciasComoOrigen  TransferenciaInventario[] @relation("TransferenciasComoOrigen")
   transferenciasComoDestino TransferenciaInventario[] @relation("TransferenciasComoDestino")
+  ministros      Ministro[]
 
   @@map("iglesias")
 }
@@ -320,6 +321,29 @@ model Usuario {
   @@map("usuarios")
 }
 
+/** Catálogo de sacerdotes/ministros que pueden celebrar actas, con sus datos
+ * de contacto. `direccion` solo aplica cuando no es el párroco de la iglesia
+ * (p.ej. un celebrante visitante). */
+model Ministro {
+  id        String   @id @default(cuid())
+  nombre    String
+  titulo    String? // p.ej. "Pbro.", "Mons.", "P.", "Obispo"
+  telefono  String?
+  email     String?
+  direccion String? // solo si no es el párroco de esta iglesia
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  iglesiaId String
+  iglesia   Iglesia @relation(fields: [iglesiaId], references: [id])
+
+  actas Acta[]
+
+  @@index([iglesiaId])
+  @@map("ministros")
+}
+
 model Acta {
   id         String   @id @default(cuid())
   tipo       TipoActa
@@ -329,7 +353,11 @@ model Acta {
   posicionEnFoja Int // posición de la partida dentro de la foja (1 a 4)
   fecha        DateTime // fecha del sacramento
   lugar        String?
-  ministro     String? // sacerdote/celebrante que oficia
+  // Texto tal cual se imprime en el acta (título + nombre al momento del
+  // registro); se conserva aunque el registro de Ministro cambie después.
+  ministro     String?
+  ministroId   String?
+  ministroRegistro Ministro? @relation(fields: [ministroId], references: [id])
   observaciones String?
   anulada      Boolean   @default(false)
   motivoAnulacion String?

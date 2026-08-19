@@ -1,27 +1,31 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { crearActa } from "../../actions";
 import { Campo, Seccion } from "@/components/form-fields";
 import { CobroModal } from "@/components/cobro-modal";
 import { PARTIDAS_POR_FOJA_DEFECTO } from "@/lib/libro";
 import type { TipoActa } from "@/lib/tipos-acta";
-import type { Iglesia } from "@prisma/client";
+import type { Iglesia, Ministro } from "@prisma/client";
 
 const NUEVO_LIBRO = "__nuevo__";
+const OTRO_MINISTRO = "__otro__";
 
 type LibroInfo = { libro: string; siguientePartida: number; lleno: boolean };
 
 export function ActaForm({
   tipo,
   iglesias,
+  ministros,
   libros,
   partidasPorFoja = PARTIDAS_POR_FOJA_DEFECTO,
   precioRegistro,
 }: {
   tipo: TipoActa;
   iglesias: Iglesia[];
+  ministros: Ministro[];
   libros: LibroInfo[];
   partidasPorFoja?: number;
   precioRegistro?: number | null;
@@ -33,6 +37,15 @@ export function ActaForm({
   const [error, setError] = useState<string | null>(null);
   const [mostrarCobro, setMostrarCobro] = useState(false);
   const [metodoPago, setMetodoPago] = useState("EFECTIVO");
+  const [iglesiaIdSeleccionada, setIglesiaIdSeleccionada] = useState(iglesias[0]?.id ?? "");
+  const [ministroId, setMinistroId] = useState("");
+  const ministrosDisponibles = useMemo(
+    () =>
+      iglesias.length > 0
+        ? ministros.filter((m) => m.iglesiaId === iglesiaIdSeleccionada)
+        : ministros,
+    [ministros, iglesias.length, iglesiaIdSeleccionada],
+  );
   const libroDisponible = [...libros].reverse().find((l) => !l.lleno);
   const [libroSeleccionado, setLibroSeleccionado] = useState(
     libroDisponible ? libroDisponible.libro : NUEVO_LIBRO,
@@ -98,6 +111,11 @@ export function ActaForm({
               id="iglesiaId"
               name="iglesiaId"
               required
+              value={iglesiaIdSeleccionada}
+              onChange={(e) => {
+                setIglesiaIdSeleccionada(e.target.value);
+                setMinistroId("");
+              }}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             >
               {iglesias.map((iglesia) => (
@@ -153,7 +171,49 @@ export function ActaForm({
         </div>
         <Campo label="Fecha del sacramento" name="fecha" type="date" required />
         <Campo label="Lugar" name="lugar" />
-        <Campo label="Ministro / celebrante" name="ministro" />
+        <div>
+          <label htmlFor="ministroId" className="block text-xs font-medium text-slate-600">
+            Ministro / celebrante
+          </label>
+          <select
+            id="ministroId"
+            name="ministroId"
+            value={ministroId}
+            onChange={(e) => setMinistroId(e.target.value)}
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="">-- Selecciona --</option>
+            {ministrosDisponibles.map((ministro) => (
+              <option key={ministro.id} value={ministro.id}>
+                {ministro.titulo ? `${ministro.titulo} ` : ""}
+                {ministro.nombre}
+              </option>
+            ))}
+            <option value={OTRO_MINISTRO}>Otro (escribir manualmente)</option>
+          </select>
+          {ministroId === OTRO_MINISTRO && (
+            <input
+              type="text"
+              name="ministro"
+              autoFocus
+              placeholder="Nombre del celebrante"
+              className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            />
+          )}
+          <p className="mt-1 text-xs text-slate-500">
+            <Link
+              href={
+                iglesias.length > 0
+                  ? `/ministros/nuevo?iglesiaId=${iglesiaIdSeleccionada}`
+                  : "/ministros/nuevo"
+              }
+              target="_blank"
+              className="underline hover:text-slate-700"
+            >
+              + Agregar un sacerdote nuevo al registro
+            </Link>
+          </p>
+        </div>
       </Seccion>
 
       {tipo === "BAUTIZO" && (

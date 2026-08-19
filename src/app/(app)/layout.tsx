@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   requireSesion,
+  puedeEscribir,
   puedeAdministrarIglesias,
   puedeAdministrarUsuarios,
   puedeAdministrarRoles,
@@ -18,6 +19,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/actas", label: "Actas" },
     { href: "/punto-de-venta", label: "Punto de venta" },
   ];
+  if (puedeEscribir(sesion)) {
+    links.push({ href: "/ministros", label: "Sacerdotes" });
+  }
   if (puedeAdministrarCatalogo(sesion)) {
     links.push({ href: "/catalogo", label: "Catálogo" });
   }

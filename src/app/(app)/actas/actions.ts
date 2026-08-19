@@ -32,13 +32,33 @@ function datosBase(formData: FormData) {
     libro: formData.get("libro"),
     fecha: formData.get("fecha"),
     lugar: formData.get("lugar"),
-    ministro: formData.get("ministro"),
+    // "ministro" solo se renderiza en el form cuando se elige "Otro"; si se
+    // eligió un registro del catálogo el campo no existe (null) en vez de "".
+    ministro: formData.get("ministro") ?? "",
     observaciones: formData.get("observaciones"),
   };
 }
 
 function limpiar(valor: string | undefined | null) {
   return valor && valor.trim() !== "" ? valor.trim() : null;
+}
+
+/** Resuelve el texto del ministro/celebrante a partir del registro
+ * seleccionado (snapshot de título + nombre), o del texto manual si se
+ * escribió "Otro" o no hay registro elegido. */
+async function resolverMinistro(formData: FormData, iglesiaId: string, textoManual: string | null) {
+  const ministroIdCrudo = formData.get("ministroId");
+  const ministroId =
+    typeof ministroIdCrudo === "string" && ministroIdCrudo && ministroIdCrudo !== "__otro__"
+      ? ministroIdCrudo
+      : null;
+  if (!ministroId) return { ministroId: null, ministroTexto: textoManual };
+
+  const ministro = await prisma.ministro.findUnique({ where: { id: ministroId } });
+  if (!ministro || ministro.iglesiaId !== iglesiaId) return { ministroId: null, ministroTexto: textoManual };
+
+  const texto = ministro.titulo ? `${ministro.titulo} ${ministro.nombre}` : ministro.nombre;
+  return { ministroId: ministro.id, ministroTexto: texto };
 }
 
 async function resolverIglesiaId(sesion: Awaited<ReturnType<typeof requireSesion>>, formData: FormData) {
@@ -94,6 +114,7 @@ async function crearActaConUbicacion(opts: {
   fecha: Date;
   lugar: string | null;
   ministro: string | null;
+  ministroId: string | null;
   observaciones: string | null;
   creadoPorId: string;
   metodoPago: MetodoPago | null;
@@ -134,6 +155,7 @@ async function crearActaConUbicacion(opts: {
           fecha: opts.fecha,
           lugar: opts.lugar,
           ministro: opts.ministro,
+          ministroRegistro: opts.ministroId ? { connect: { id: opts.ministroId } } : undefined,
           observaciones: opts.observaciones,
           creadoPor: { connect: { id: opts.creadoPorId } },
           ...opts.detalle,
@@ -200,6 +222,11 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
       : null;
 
   const base = datosBase(formData);
+  const { ministroId, ministroTexto } = await resolverMinistro(
+    formData,
+    iglesiaId,
+    limpiar(base.ministro as string | null),
+  );
   let actaId: string;
 
   try {
@@ -220,7 +247,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         libro: datos.libro.trim(),
         fecha: new Date(datos.fecha),
         lugar: limpiar(datos.lugar),
-        ministro: limpiar(datos.ministro),
+        ministro: ministroTexto,
+        ministroId,
         observaciones: limpiar(datos.observaciones),
         creadoPorId: sesion.id,
         metodoPago,
@@ -256,7 +284,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         libro: datos.libro.trim(),
         fecha: new Date(datos.fecha),
         lugar: limpiar(datos.lugar),
-        ministro: limpiar(datos.ministro),
+        ministro: ministroTexto,
+        ministroId,
         observaciones: limpiar(datos.observaciones),
         creadoPorId: sesion.id,
         metodoPago,
@@ -292,7 +321,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         libro: datos.libro.trim(),
         fecha: new Date(datos.fecha),
         lugar: limpiar(datos.lugar),
-        ministro: limpiar(datos.ministro),
+        ministro: ministroTexto,
+        ministroId,
         observaciones: limpiar(datos.observaciones),
         creadoPorId: sesion.id,
         metodoPago,
@@ -332,7 +362,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         libro: datos.libro.trim(),
         fecha: new Date(datos.fecha),
         lugar: limpiar(datos.lugar),
-        ministro: limpiar(datos.ministro),
+        ministro: ministroTexto,
+        ministroId,
         observaciones: limpiar(datos.observaciones),
         creadoPorId: sesion.id,
         metodoPago,
