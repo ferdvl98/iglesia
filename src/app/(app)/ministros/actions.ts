@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeEscribir } from "@/lib/authz";
+import { requireSesion, puedeAdministrarMinistros } from "@/lib/authz";
 
 export type EstadoFormulario = { error: string } | null;
 
@@ -33,7 +33,7 @@ export async function crearMinistro(
   formData: FormData,
 ): Promise<EstadoFormulario> {
   const sesion = await requireSesion();
-  if (!puedeEscribir(sesion)) return { error: "No tienes permiso para esto." };
+  if (!puedeAdministrarMinistros(sesion)) return { error: "No tienes permiso para esto." };
 
   const nombre = (formData.get("nombre") as string)?.trim();
   if (!nombre) return { error: "El nombre es obligatorio." };
@@ -65,7 +65,7 @@ export async function actualizarMinistro(
   formData: FormData,
 ): Promise<EstadoFormulario> {
   const sesion = await requireSesion();
-  if (!puedeEscribir(sesion)) return { error: "No tienes permiso para esto." };
+  if (!puedeAdministrarMinistros(sesion)) return { error: "No tienes permiso para esto." };
 
   const ministroId = formData.get("ministroId") as string;
   const ministro = await prisma.ministro.findUnique({ where: { id: ministroId } });
@@ -94,7 +94,7 @@ export async function actualizarMinistro(
 
 export async function cambiarEstadoMinistro(ministroId: string, activo: boolean) {
   const sesion = await requireSesion();
-  if (!puedeEscribir(sesion)) throw new Error("No tienes permiso para esto.");
+  if (!puedeAdministrarMinistros(sesion)) throw new Error("No tienes permiso para esto.");
 
   const ministro = await prisma.ministro.findUnique({ where: { id: ministroId } });
   if (!ministro) throw new Error("Sacerdote no encontrado.");

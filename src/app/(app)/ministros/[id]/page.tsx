@@ -1,12 +1,12 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeEscribir } from "@/lib/authz";
+import { requireSesion, puedeAdministrarMinistros } from "@/lib/authz";
 import { actualizarMinistro } from "../actions";
 import { MinistroForm } from "../ministro-form";
 
 export default async function EditarMinistroPage({ params }: { params: Promise<{ id: string }> }) {
   const sesion = await requireSesion();
-  if (!puedeEscribir(sesion)) redirect("/dashboard");
+  if (!puedeAdministrarMinistros(sesion)) redirect("/dashboard");
 
   const { id } = await params;
   const ministro = await prisma.ministro.findUnique({ where: { id } });

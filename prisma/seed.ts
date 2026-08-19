@@ -29,6 +29,7 @@ async function main() {
         "PUNTO_DE_VENTA",
         "ADMINISTRAR_CATALOGO",
         "CONFIGURAR",
+        "ADMINISTRAR_MINISTROS",
       ],
     },
   });

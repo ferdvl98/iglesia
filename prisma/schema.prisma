@@ -18,6 +18,7 @@ enum Permiso {
   PUNTO_DE_VENTA // vender productos/servicios
   ADMINISTRAR_CATALOGO // catálogo, ajuste de inventario, transferencia de inventario
   CONFIGURAR // precios de registro/reimpresión por tipo de acta
+  ADMINISTRAR_MINISTROS // catálogo de sacerdotes/ministros
 }
 
 enum TipoActa {

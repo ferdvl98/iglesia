@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { rutaATipo, TIPO_ACTA_LABEL } from "@/lib/tipos-acta";
-import { requireSesion, puedeConfigurar } from "@/lib/authz";
+import { requireSesion, puedeConfigurar, puedeAdministrarMinistros } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { obtenerConfiguracion } from "@/lib/configuracion";
 import { obtenerLibrosExistentes } from "../../actions";
@@ -73,6 +73,7 @@ export default async function NuevaActaTipoPage({
         tipo={tipo}
         iglesias={iglesias}
         ministros={ministros}
+        puedeAdministrarMinistros={puedeAdministrarMinistros(sesion)}
         libros={libros}
         partidasPorFoja={config?.partidasPorFoja}
         precioRegistro={config?.precioRegistro}

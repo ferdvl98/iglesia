@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireSesion, puedeEscribir } from "@/lib/authz";
+import { requireSesion, puedeAdministrarMinistros } from "@/lib/authz";
 import { crearMinistro } from "../actions";
 import { MinistroForm } from "../ministro-form";
 
@@ -9,7 +9,7 @@ export default async function NuevoMinistroPage({
   searchParams: Promise<{ iglesiaId?: string }>;
 }) {
   const sesion = await requireSesion();
-  if (!puedeEscribir(sesion)) redirect("/dashboard");
+  if (!puedeAdministrarMinistros(sesion)) redirect("/dashboard");
 
   const params = await searchParams;
   if (sesion.esSuperAdmin && !params.iglesiaId) redirect("/ministros");

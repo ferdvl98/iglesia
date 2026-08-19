@@ -19,6 +19,7 @@ export function ActaForm({
   tipo,
   iglesias,
   ministros,
+  puedeAdministrarMinistros,
   libros,
   partidasPorFoja = PARTIDAS_POR_FOJA_DEFECTO,
   precioRegistro,
@@ -26,6 +27,7 @@ export function ActaForm({
   tipo: TipoActa;
   iglesias: Iglesia[];
   ministros: Ministro[];
+  puedeAdministrarMinistros: boolean;
   libros: LibroInfo[];
   partidasPorFoja?: number;
   precioRegistro?: number | null;
@@ -200,19 +202,21 @@ export function ActaForm({
               className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             />
           )}
-          <p className="mt-1 text-xs text-slate-500">
-            <Link
-              href={
-                iglesias.length > 0
-                  ? `/ministros/nuevo?iglesiaId=${iglesiaIdSeleccionada}`
-                  : "/ministros/nuevo"
-              }
-              target="_blank"
-              className="underline hover:text-slate-700"
-            >
-              + Agregar un sacerdote nuevo al registro
-            </Link>
-          </p>
+          {puedeAdministrarMinistros && (
+            <p className="mt-1 text-xs text-slate-500">
+              <Link
+                href={
+                  iglesias.length > 0
+                    ? `/ministros/nuevo?iglesiaId=${iglesiaIdSeleccionada}`
+                    : "/ministros/nuevo"
+                }
+                target="_blank"
+                className="underline hover:text-slate-700"
+              >
+                + Agregar un sacerdote nuevo al registro
+              </Link>
+            </p>
+          )}
         </div>
       </Seccion>
 

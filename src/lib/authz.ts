@@ -34,7 +34,10 @@ export async function requireSesion(): Promise<SesionActiva> {
 }
 
 function tienePermiso(sesion: SesionActiva, permiso: Permiso) {
-  return sesion.esSuperAdmin || sesion.permisos.includes(permiso);
+  // El rol Administrador (fijo) siempre tiene todos los permisos, sin
+  // depender de que su lista de permisos guardada esté sincronizada con
+  // los que existan hoy en el enum Permiso.
+  return sesion.esSuperAdmin || sesion.esAdministrador || sesion.permisos.includes(permiso);
 }
 
 export function puedeEscribir(sesion: SesionActiva) {
@@ -56,6 +59,11 @@ export function puedeConfigurar(sesion: SesionActiva) {
 /** El catálogo de productos/servicios (incl. ajuste y transferencia de inventario). */
 export function puedeAdministrarCatalogo(sesion: SesionActiva) {
   return tienePermiso(sesion, "ADMINISTRAR_CATALOGO");
+}
+
+/** Catálogo de sacerdotes/ministros usado al registrar actas. */
+export function puedeAdministrarMinistros(sesion: SesionActiva) {
+  return tienePermiso(sesion, "ADMINISTRAR_MINISTROS");
 }
 
 /** Administrar iglesias es un nivel de diócesis, no delegable por roles. */

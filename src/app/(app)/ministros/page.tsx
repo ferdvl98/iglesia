@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeEscribir } from "@/lib/authz";
+import { requireSesion, puedeAdministrarMinistros } from "@/lib/authz";
 import { EstadoMinistroToggle } from "./estado-toggle";
 
 export default async function MinistrosPage({
@@ -10,7 +10,7 @@ export default async function MinistrosPage({
   searchParams: Promise<{ iglesiaId?: string }>;
 }) {
   const sesion = await requireSesion();
-  if (!puedeEscribir(sesion)) redirect("/dashboard");
+  if (!puedeAdministrarMinistros(sesion)) redirect("/dashboard");
 
   if (sesion.esSuperAdmin) {
     const params = await searchParams;
