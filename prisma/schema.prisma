@@ -431,7 +431,8 @@ model PrimeraComunion {
   actaId            String  @unique
   acta              Acta    @relation(fields: [actaId], references: [id], onDelete: Cascade)
 
-  nombreCompleto    String
+  nombre            String
+  apellidos         String
   sexo              Sexo?
   fechaNacimiento   DateTime?
   nombrePadre       String?

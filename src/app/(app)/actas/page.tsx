@@ -31,7 +31,8 @@ export default async function ActasPage({
   if (params.q) {
     where.OR = [
       { bautizo: { nombreCompleto: { contains: params.q, mode: "insensitive" } } },
-      { primeraComunion: { nombreCompleto: { contains: params.q, mode: "insensitive" } } },
+      { primeraComunion: { nombre: { contains: params.q, mode: "insensitive" } } },
+      { primeraComunion: { apellidos: { contains: params.q, mode: "insensitive" } } },
       { confirmacion: { nombreCompleto: { contains: params.q, mode: "insensitive" } } },
       { matrimonio: { nombreEsposo: { contains: params.q, mode: "insensitive" } } },
       { matrimonio: { nombreEsposa: { contains: params.q, mode: "insensitive" } } },
@@ -68,7 +69,7 @@ export default async function ActasPage({
 
   function nombrePrincipal(acta: (typeof actas)[number]) {
     if (acta.bautizo) return acta.bautizo.nombreCompleto;
-    if (acta.primeraComunion) return acta.primeraComunion.nombreCompleto;
+    if (acta.primeraComunion) return `${acta.primeraComunion.nombre} ${acta.primeraComunion.apellidos}`;
     if (acta.confirmacion) return acta.confirmacion.nombreCompleto;
     if (acta.matrimonio) return `${acta.matrimonio.nombreEsposo} & ${acta.matrimonio.nombreEsposa}`;
     return "-";

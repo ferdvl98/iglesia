@@ -179,7 +179,10 @@ export function ActaPdfDocument({ acta }: { acta: ActaCompleta }) {
           <View style={styles.seccion}>
             <Text style={styles.seccionTitulo}>Datos del comulgante</Text>
             <View style={styles.fila}>
-              <Campo etiqueta="Nombre completo" valor={acta.primeraComunion.nombreCompleto} />
+              <Campo
+                etiqueta="Nombre completo"
+                valor={`${acta.primeraComunion.nombre} ${acta.primeraComunion.apellidos}`}
+              />
               <Campo etiqueta="Fecha de nacimiento" valor={fmt(acta.primeraComunion.fechaNacimiento)} />
             </View>
             <View style={styles.fila}>

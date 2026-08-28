@@ -251,7 +251,8 @@ export function ActaForm({
       {tipo === "PRIMERA_COMUNION" && (
         <>
           <Seccion titulo="Datos del comulgante">
-            <Campo label="Nombre completo" name="nombreCompleto" required />
+            <Campo label="Nombre(s)" name="nombre" required />
+            <Campo label="Apellidos" name="apellidos" required />
             <div>
               <label htmlFor="sexo" className="block text-xs font-medium text-slate-600">
                 Sexo

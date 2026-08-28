@@ -24,7 +24,8 @@ export const bautizoSchema = baseActaSchema.extend({
 });
 
 export const primeraComunionSchema = baseActaSchema.extend({
-  nombreCompleto: campoTexto,
+  nombre: campoTexto,
+  apellidos: campoTexto,
   sexo: campoOpcional,
   fechaNacimiento: campoOpcional,
   nombrePadre: campoOpcional,

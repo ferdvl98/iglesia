@@ -284,7 +284,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
     } else if (tipoParam === "PRIMERA_COMUNION") {
       const datos = primeraComunionSchema.parse({
         ...base,
-        nombreCompleto: formData.get("nombreCompleto"),
+        nombre: formData.get("nombre"),
+        apellidos: formData.get("apellidos"),
         sexo: formData.get("sexo"),
         fechaNacimiento: formData.get("fechaNacimiento"),
         nombrePadre: formData.get("nombrePadre"),
@@ -309,7 +310,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         detalle: {
           primeraComunion: {
             create: {
-              nombreCompleto: datos.nombreCompleto,
+              nombre: datos.nombre,
+              apellidos: datos.apellidos,
               sexo: limpiarSexo(datos.sexo),
               fechaNacimiento: datos.fechaNacimiento ? new Date(datos.fechaNacimiento) : null,
               nombrePadre: limpiar(datos.nombrePadre),

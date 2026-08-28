@@ -132,7 +132,8 @@ export default async function ActaDetallePage({
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Datos del comulgante</h2>
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <Fila label="Nombre completo" value={acta.primeraComunion.nombreCompleto} />
+            <Fila label="Nombre(s)" value={acta.primeraComunion.nombre} />
+            <Fila label="Apellidos" value={acta.primeraComunion.apellidos} />
             <Fila label="Sexo" value={acta.primeraComunion.sexo} />
             <Fila label="Fecha de nacimiento" value={fmt(acta.primeraComunion.fechaNacimiento)} />
             <Fila label="Padre" value={acta.primeraComunion.nombrePadre} />

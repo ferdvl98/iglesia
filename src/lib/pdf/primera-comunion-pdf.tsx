@@ -114,6 +114,10 @@ function v(valor: string | number | null | undefined) {
   return valor === null || valor === undefined || valor === "" ? "_______" : String(valor);
 }
 
+function mayus(valor: string | null | undefined) {
+  return valor ? valor.toUpperCase() : valor;
+}
+
 function Dato({ valor }: { valor: string | number | null | undefined }) {
   return <Text style={styles.dato}>{v(valor)}</Text>;
 }
@@ -121,6 +125,7 @@ function Dato({ valor }: { valor: string | number | null | undefined }) {
 export function PrimeraComunionActaPdf({ acta }: { acta: ActaPrimeraComunion }) {
   const { dia, mes, anio } = partesFecha(acta.fecha);
   const pc = acta.primeraComunion;
+  const nombreCompleto = `${pc.nombre} ${pc.apellidos}`.trim().toUpperCase();
   const bautismo = partesFecha(pc.fechaBautismo);
   const bautizadoA = pc.sexo === "FEMENINO" ? "bautizada" : pc.sexo === "MASCULINO" ? "bautizado" : "bautizado(a)";
 
@@ -134,14 +139,14 @@ export function PrimeraComunionActaPdf({ acta }: { acta: ActaPrimeraComunion }) 
             <Text style={styles.actaNo}>No. {acta.numeroActa}</Text>
           </View>
           <View style={styles.columnaNombreDestacado}>
-            <Text style={styles.nombreDestacado}>{v(pc.nombreCompleto)}.</Text>
+            <Text style={styles.nombreDestacado}>{v(nombreCompleto)}.</Text>
           </View>
         </View>
 
         <View style={styles.filaDatos}>
           <View style={styles.columnaNombre}>
             <Text style={styles.etiquetaNombre}>NOMBRE:</Text>
-            <Text style={styles.valorNombre}>{v(pc.nombreCompleto)}</Text>
+            <Text style={styles.valorNombre}>{v(mayus(pc.nombre))}</Text>
           </View>
 
           <View style={styles.columnaDerecha}>
@@ -155,11 +160,11 @@ export function PrimeraComunionActaPdf({ acta }: { acta: ActaPrimeraComunion }) 
         </View>
 
         <Text style={styles.centrado}>
-          Hijo de: <Dato valor={pc.nombrePadre} /> y <Dato valor={pc.nombreMadre} />.
+          Hijo de: <Dato valor={mayus(pc.nombrePadre)} /> y <Dato valor={mayus(pc.nombreMadre)} />.
         </Text>
 
         <Text style={styles.centrado}>
-          Sus Padrinos: <Dato valor={pc.padrino} /> y <Dato valor={pc.madrina} />.
+          Sus Padrinos: <Dato valor={mayus(pc.padrino)} /> y <Dato valor={mayus(pc.madrina)} />.
         </Text>
 
         <View style={styles.firmaCentrada}>
