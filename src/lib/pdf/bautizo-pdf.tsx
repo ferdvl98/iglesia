@@ -11,31 +11,14 @@ const styles = StyleSheet.create({
     color: "#1c1c1c",
     lineHeight: 1.6,
   },
-  encabezado: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 18,
-  },
-  tituloBloque: {
-    width: 130,
-  },
-  tituloActa: {
-    fontSize: 13,
-    fontStyle: "italic",
-  },
-  numero: {
+  actaNo: {
     fontSize: 11,
     fontStyle: "italic",
-    marginTop: 8,
-  },
-  cuerpo: {
-    flex: 1,
-    paddingLeft: 12,
-    textAlign: "left",
+    marginBottom: 16,
   },
   parrafo: {
     marginBottom: 10,
+    textAlign: "left",
   },
   aviso: {
     marginTop: 24,
@@ -45,8 +28,8 @@ const styles = StyleSheet.create({
   },
   firmaUnica: {
     marginTop: 48,
-    alignSelf: "center",
-    width: 260,
+    alignSelf: "flex-end",
+    width: 220,
     textAlign: "center",
   },
   doyFeTexto: {
@@ -79,7 +62,7 @@ const MESES = [
 function partesFecha(fecha: Date | null) {
   if (!fecha) return { dia: null, mes: null, anio: null };
   const d = new Date(fecha);
-  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() };
+  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() % 100 };
 }
 
 function v(valor: string | number | null | undefined) {
@@ -96,25 +79,36 @@ export function BautizoActaPdf({ acta }: { acta: ActaBautizo }) {
   return (
     <Document title={`Acta de Bautizo - ${acta.numeroActa}`}>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.encabezado}>
-          <View style={styles.tituloBloque}>
-            <Text style={styles.tituloActa}>Acta</Text>
-            <Text style={styles.tituloActa}>de Bautizo</Text>
-            <Text style={styles.numero}>No. {acta.numeroActa}</Text>
-          </View>
+        <Text style={styles.actaNo}>Acta No. {acta.numeroActa}</Text>
 
-          <View style={styles.cuerpo}>
-            <Text style={styles.parrafo}>
-              En la Parroquia de {v(acta.lugar || acta.iglesia.nombre)}, el día {v(dia)} de {v(mes)} de{" "}
-              {v(anio)}, yo, el {v(acta.ministro)}, bauticé solemnemente a un {niñoNiña} que nació el día{" "}
-              {v(nacimiento.dia)} de {v(nacimiento.mes)} de {v(nacimiento.anio)} en {v(b.lugarNacimiento)},
-              con domicilio en {v(b.domicilio)}, a quien puse por nombre {v(b.nombreCompleto)}, {hijoHija}{" "}
-              del Sr. {v(b.nombrePadre)} y de la Sra. {v(b.nombreMadre)}; fueron sus padrinos el Sr.{" "}
-              {v(b.padrino)} y la Sra. {v(b.madrina)}, a quienes advertí sus obligaciones y parentesco
-              espiritual.
-            </Text>
-          </View>
-        </View>
+        <Text style={styles.parrafo}>En la Parroquia de {v(acta.lugar || acta.iglesia.nombre)}</Text>
+
+        <Text style={styles.parrafo}>
+          el día {v(dia)} de {v(mes)} de 20{v(anio)}, yo, el {v(acta.ministro)},
+        </Text>
+
+        <Text style={styles.parrafo}>
+          bauticé solemnemente a un {niñoNiña} que nació el día {v(nacimiento.dia)}
+        </Text>
+
+        <Text style={styles.parrafo}>
+          de {v(nacimiento.mes)} de 20{v(nacimiento.anio)} en {v(b.lugarNacimiento)},
+        </Text>
+
+        <Text style={styles.parrafo}>y con domicilio en: {v(b.domicilio)},</Text>
+
+        <Text style={styles.parrafo}>
+          a quien puse por nombre {v(b.nombreCompleto)}, {hijoHija}
+        </Text>
+
+        <Text style={styles.parrafo}>del Sr. {v(b.nombrePadre)}</Text>
+        <Text style={styles.parrafo}>y de la Sra. {v(b.nombreMadre)}</Text>
+
+        <Text style={styles.parrafo}>fueron sus padrinos:</Text>
+        <Text style={styles.parrafo}>el Sr. {v(b.padrino)}</Text>
+        <Text style={styles.parrafo}>y la Sra. {v(b.madrina)}</Text>
+
+        <Text style={styles.parrafo}>a quienes advertí sus obligaciones y parentesco espiritual.</Text>
 
         <View style={styles.firmaUnica}>
           <Text style={styles.doyFeTexto}>Doy Fe</Text>
