@@ -25,12 +25,15 @@ export const bautizoSchema = baseActaSchema.extend({
 
 export const primeraComunionSchema = baseActaSchema.extend({
   nombreCompleto: campoTexto,
+  sexo: campoOpcional,
   fechaNacimiento: campoOpcional,
   nombrePadre: campoOpcional,
   nombreMadre: campoOpcional,
   padrino: campoOpcional,
   madrina: campoOpcional,
   catequista: campoOpcional,
+  parroquiaBautismo: campoOpcional,
+  fechaBautismo: campoOpcional,
 });
 
 export const confirmacionSchema = baseActaSchema.extend({

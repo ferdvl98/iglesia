@@ -432,12 +432,15 @@ model PrimeraComunion {
   acta              Acta    @relation(fields: [actaId], references: [id], onDelete: Cascade)
 
   nombreCompleto    String
+  sexo              Sexo?
   fechaNacimiento   DateTime?
   nombrePadre       String?
   nombreMadre       String?
   padrino           String?
   madrina           String?
   catequista        String?
+  parroquiaBautismo String?
+  fechaBautismo     DateTime?
 
   @@map("primeras_comuniones")
 }

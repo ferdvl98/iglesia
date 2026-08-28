@@ -285,12 +285,15 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
       const datos = primeraComunionSchema.parse({
         ...base,
         nombreCompleto: formData.get("nombreCompleto"),
+        sexo: formData.get("sexo"),
         fechaNacimiento: formData.get("fechaNacimiento"),
         nombrePadre: formData.get("nombrePadre"),
         nombreMadre: formData.get("nombreMadre"),
         padrino: formData.get("padrino"),
         madrina: formData.get("madrina"),
         catequista: formData.get("catequista"),
+        parroquiaBautismo: formData.get("parroquiaBautismo"),
+        fechaBautismo: formData.get("fechaBautismo"),
       });
       const acta = await crearActaConUbicacion({
         iglesiaId,
@@ -307,12 +310,15 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
           primeraComunion: {
             create: {
               nombreCompleto: datos.nombreCompleto,
+              sexo: limpiarSexo(datos.sexo),
               fechaNacimiento: datos.fechaNacimiento ? new Date(datos.fechaNacimiento) : null,
               nombrePadre: limpiar(datos.nombrePadre),
               nombreMadre: limpiar(datos.nombreMadre),
               padrino: limpiar(datos.padrino),
               madrina: limpiar(datos.madrina),
               catequista: limpiar(datos.catequista),
+              parroquiaBautismo: limpiar(datos.parroquiaBautismo),
+              fechaBautismo: datos.fechaBautismo ? new Date(datos.fechaBautismo) : null,
             },
           },
         },

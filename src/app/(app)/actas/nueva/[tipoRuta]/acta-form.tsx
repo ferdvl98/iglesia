@@ -249,15 +249,36 @@ export function ActaForm({
       )}
 
       {tipo === "PRIMERA_COMUNION" && (
-        <Seccion titulo="Datos del comulgante">
-          <Campo label="Nombre completo" name="nombreCompleto" required />
-          <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
-          <Campo label="Nombre del padre" name="nombrePadre" />
-          <Campo label="Nombre de la madre" name="nombreMadre" />
-          <Campo label="Padrino" name="padrino" />
-          <Campo label="Madrina" name="madrina" />
-          <Campo label="Catequista" name="catequista" />
-        </Seccion>
+        <>
+          <Seccion titulo="Datos del comulgante">
+            <Campo label="Nombre completo" name="nombreCompleto" required />
+            <div>
+              <label htmlFor="sexo" className="block text-xs font-medium text-slate-600">
+                Sexo
+              </label>
+              <select
+                id="sexo"
+                name="sexo"
+                defaultValue=""
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">-- Selecciona --</option>
+                <option value="MASCULINO">Masculino</option>
+                <option value="FEMENINO">Femenino</option>
+              </select>
+            </div>
+            <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
+            <Campo label="Nombre del padre" name="nombrePadre" />
+            <Campo label="Nombre de la madre" name="nombreMadre" />
+            <Campo label="Padrino" name="padrino" />
+            <Campo label="Madrina" name="madrina" />
+            <Campo label="Catequista" name="catequista" />
+          </Seccion>
+          <Seccion titulo="Bautismo de referencia">
+            <Campo label="Parroquia donde fue bautizado" name="parroquiaBautismo" />
+            <Campo label="Fecha de bautismo" name="fechaBautismo" type="date" />
+          </Seccion>
+        </>
       )}
 
       {tipo === "CONFIRMACION" && (

@@ -5,6 +5,7 @@ import { formatearFechaLarga } from "@/lib/fecha";
 import { MatrimonioActaPdf } from "@/lib/pdf/matrimonio-pdf";
 import { BautizoActaPdf } from "@/lib/pdf/bautizo-pdf";
 import { ConfirmacionActaPdf } from "@/lib/pdf/confirmacion-pdf";
+import { PrimeraComunionActaPdf } from "@/lib/pdf/primera-comunion-pdf";
 
 type ActaCompleta = Acta & {
   iglesia: Iglesia;
@@ -125,6 +126,9 @@ export function ActaPdfDocument({ acta }: { acta: ActaCompleta }) {
   }
   if (acta.tipo === "CONFIRMACION" && acta.confirmacion) {
     return <ConfirmacionActaPdf acta={{ ...acta, confirmacion: acta.confirmacion }} />;
+  }
+  if (acta.tipo === "PRIMERA_COMUNION" && acta.primeraComunion) {
+    return <PrimeraComunionActaPdf acta={{ ...acta, primeraComunion: acta.primeraComunion }} />;
   }
 
   return (

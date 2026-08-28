@@ -133,12 +133,15 @@ export default async function ActaDetallePage({
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Datos del comulgante</h2>
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Fila label="Nombre completo" value={acta.primeraComunion.nombreCompleto} />
+            <Fila label="Sexo" value={acta.primeraComunion.sexo} />
             <Fila label="Fecha de nacimiento" value={fmt(acta.primeraComunion.fechaNacimiento)} />
             <Fila label="Padre" value={acta.primeraComunion.nombrePadre} />
             <Fila label="Madre" value={acta.primeraComunion.nombreMadre} />
             <Fila label="Padrino" value={acta.primeraComunion.padrino} />
             <Fila label="Madrina" value={acta.primeraComunion.madrina} />
             <Fila label="Catequista" value={acta.primeraComunion.catequista} />
+            <Fila label="Parroquia de bautismo" value={acta.primeraComunion.parroquiaBautismo} />
+            <Fila label="Fecha de bautismo" value={fmt(acta.primeraComunion.fechaBautismo)} />
           </dl>
         </div>
       )}
