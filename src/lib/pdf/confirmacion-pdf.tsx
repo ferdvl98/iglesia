@@ -11,31 +11,32 @@ const styles = StyleSheet.create({
     color: "#1c1c1c",
     lineHeight: 1.6,
   },
-  encabezado: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 18,
-  },
-  tituloBloque: {
-    width: 130,
-  },
-  tituloActa: {
-    fontSize: 13,
-    fontStyle: "italic",
-  },
-  numero: {
+  actaNo: {
     fontSize: 11,
     fontStyle: "italic",
-    marginTop: 8,
-  },
-  cuerpo: {
-    flex: 1,
-    paddingLeft: 12,
-    textAlign: "left",
+    marginBottom: 16,
   },
   parrafo: {
     marginBottom: 10,
+    textAlign: "left",
+  },
+  nombreConfirmado: {
+    marginTop: 14,
+    marginBottom: 2,
+    fontSize: 12,
+    textAlign: "center",
+  },
+  captionBloque: {
+    alignSelf: "center",
+    backgroundColor: "#e5e5e5",
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    marginBottom: 16,
+  },
+  caption: {
+    fontSize: 8,
+    fontStyle: "italic",
+    color: "#3f3f3f",
   },
   seccionTitulo: {
     fontSize: 10,
@@ -52,8 +53,8 @@ const styles = StyleSheet.create({
   },
   firmaUnica: {
     marginTop: 48,
-    alignSelf: "center",
-    width: 260,
+    alignSelf: "flex-end",
+    width: 220,
     textAlign: "center",
   },
   doyFeTexto: {
@@ -86,7 +87,7 @@ const MESES = [
 function partesFecha(fecha: Date | null) {
   if (!fecha) return { dia: null, mes: null, anio: null };
   const d = new Date(fecha);
-  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() };
+  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() % 100 };
 }
 
 function v(valor: string | number | null | undefined) {
@@ -99,32 +100,40 @@ export function ConfirmacionActaPdf({ acta }: { acta: ActaConfirmacion }) {
   const nacimiento = partesFecha(c.fechaNacimiento);
   const bautismo = partesFecha(c.fechaBautismo);
   const hijoHija = c.sexo === "FEMENINO" ? "hija" : c.sexo === "MASCULINO" ? "hijo" : "hijo(a)";
-  const bautizadoA = c.sexo === "FEMENINO" ? "bautizada" : c.sexo === "MASCULINO" ? "bautizado" : "bautizado(a)";
+  const bautizadoA = c.sexo === "FEMENINO" ? "Bautizada" : c.sexo === "MASCULINO" ? "Bautizado" : "Bautizado(a)";
 
   return (
     <Document title={`Acta de Confirmación - ${acta.numeroActa}`}>
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.encabezado}>
-          <View style={styles.tituloBloque}>
-            <Text style={styles.tituloActa}>Acta</Text>
-            <Text style={styles.tituloActa}>de Confirmación</Text>
-            <Text style={styles.numero}>No. {acta.numeroActa}</Text>
-          </View>
+        <Text style={styles.actaNo}>Acta No. {acta.numeroActa}</Text>
 
-          <View style={styles.cuerpo}>
-            <Text style={styles.parrafo}>
-              En la Parroquia de {v(acta.lugar || acta.iglesia.nombre)}, el día {v(dia)} de {v(mes)} de{" "}
-              {v(anio)}, recibió el Sacramento de la Confirmación por manos del Excmo. Sr. Obispo{" "}
-              {v(c.obispoMinistro)}, {v(c.nombreCompleto)}, quien nació en {v(c.lugarNacimiento)} el día{" "}
-              {v(nacimiento.dia)} de {v(nacimiento.mes)} de {v(nacimiento.anio)}. Fue {bautizadoA} en la
-              Parroquia de {v(c.parroquiaBautismo)} el día {v(bautismo.dia)} de {v(bautismo.mes)} de{" "}
-              {v(bautismo.anio)}, como consta en el libro de Bautismos No. {v(c.libroBautismo)}, Foja{" "}
-              {v(c.fojaBautismo)}, Acta {v(c.actaBautismo)}. {hijoHija.charAt(0).toUpperCase() + hijoHija.slice(1)}{" "}
-              del Sr. {v(c.nombrePadre)} y de la Sra. {v(c.nombreMadre)}. Padrinos: {v(c.padrino)} y{" "}
-              {v(c.madrina)}.
-            </Text>
-          </View>
+        <Text style={styles.parrafo}>
+          En la Parroquia de {v(acta.lugar || acta.iglesia.nombre)}, el día {v(dia)} de {v(mes)} de 20
+          {v(anio)}, recibió el Sacramento de la Confirmación por manos del Excmo. Sr. Obispo:{" "}
+          {v(c.obispoMinistro)}.
+        </Text>
+
+        <Text style={styles.nombreConfirmado}>{v(c.nombreCompleto)}</Text>
+        <View style={styles.captionBloque}>
+          <Text style={styles.caption}>Nombre y apellidos del confirmado</Text>
         </View>
+
+        <Text style={styles.parrafo}>
+          Nació en {v(c.lugarNacimiento)} el día {v(nacimiento.dia)} de {v(nacimiento.mes)} de 20
+          {v(nacimiento.anio)}. Fue {bautizadoA} en la Parroquia de: {v(c.parroquiaBautismo)}
+        </Text>
+
+        <Text style={styles.parrafo}>
+          el día {v(bautismo.dia)} de {v(bautismo.mes)} de 20{v(bautismo.anio)}, como consta en el
+          libro de Bautismos No. {v(c.libroBautismo)} Foja {v(c.fojaBautismo)} Acta {v(c.actaBautismo)}.{" "}
+          {hijoHija.charAt(0).toUpperCase() + hijoHija.slice(1)} del Sr. {v(c.nombrePadre)}
+        </Text>
+
+        <Text style={styles.parrafo}>y de la Sra. {v(c.nombreMadre)}</Text>
+
+        <Text style={styles.parrafo}>
+          Padrinos: {v(c.padrino)} y {v(c.madrina)}
+        </Text>
 
         <View style={styles.firmaUnica}>
           <Text style={styles.doyFeTexto}>Doy Fe</Text>
