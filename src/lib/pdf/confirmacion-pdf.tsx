@@ -11,17 +11,27 @@ const styles = StyleSheet.create({
     color: "#1c1c1c",
     lineHeight: 1.6,
   },
+  fila: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  columnaIzquierda: {
+    width: 120,
+  },
   actaNo: {
     fontSize: 11,
     fontStyle: "italic",
-    marginBottom: 16,
+  },
+  columnaDerecha: {
+    flex: 1,
+    paddingLeft: 12,
   },
   parrafo: {
     marginBottom: 10,
     textAlign: "left",
   },
   nombreConfirmado: {
-    marginTop: 14,
+    marginTop: 4,
     marginBottom: 2,
     fontSize: 12,
     textAlign: "center",
@@ -52,7 +62,7 @@ const styles = StyleSheet.create({
     color: "#b91c1c",
   },
   firmaUnica: {
-    marginTop: 48,
+    marginTop: 40,
     alignSelf: "flex-end",
     width: 220,
     textAlign: "center",
@@ -105,40 +115,46 @@ export function ConfirmacionActaPdf({ acta }: { acta: ActaConfirmacion }) {
   return (
     <Document title={`Acta de Confirmación - ${acta.numeroActa}`}>
       <Page size="LETTER" style={styles.page}>
-        <Text style={styles.actaNo}>Acta No. {acta.numeroActa}</Text>
+        <View style={styles.fila}>
+          <View style={styles.columnaIzquierda}>
+            <Text style={styles.actaNo}>Acta No. {acta.numeroActa}</Text>
+          </View>
 
-        <Text style={styles.parrafo}>
-          En la Parroquia de {v(acta.lugar || acta.iglesia.nombre)}, el día {v(dia)} de {v(mes)} de 20
-          {v(anio)}, recibió el Sacramento de la Confirmación por manos del Excmo. Sr. Obispo:{" "}
-          {v(c.obispoMinistro)}.
-        </Text>
+          <View style={styles.columnaDerecha}>
+            <Text style={styles.parrafo}>
+              En la Parroquia de {v(acta.lugar || acta.iglesia.nombre)}, el día {v(dia)} de {v(mes)} de 20
+              {v(anio)}, recibió el Sacramento de la Confirmación por manos del Excmo. Sr. Obispo:{" "}
+              {v(c.obispoMinistro)}.
+            </Text>
 
-        <Text style={styles.nombreConfirmado}>{v(c.nombreCompleto)}</Text>
-        <View style={styles.captionBloque}>
-          <Text style={styles.caption}>Nombre y apellidos del confirmado</Text>
-        </View>
+            <Text style={styles.nombreConfirmado}>{v(c.nombreCompleto)}</Text>
+            <View style={styles.captionBloque}>
+              <Text style={styles.caption}>Nombre y apellidos del confirmado</Text>
+            </View>
 
-        <Text style={styles.parrafo}>
-          Nació en {v(c.lugarNacimiento)} el día {v(nacimiento.dia)} de {v(nacimiento.mes)} de 20
-          {v(nacimiento.anio)}. Fue {bautizadoA} en la Parroquia de: {v(c.parroquiaBautismo)}
-        </Text>
+            <Text style={styles.parrafo}>
+              Nació en {v(c.lugarNacimiento)} el día {v(nacimiento.dia)} de {v(nacimiento.mes)} de 20
+              {v(nacimiento.anio)}. Fue {bautizadoA} en la Parroquia de: {v(c.parroquiaBautismo)}
+            </Text>
 
-        <Text style={styles.parrafo}>
-          el día {v(bautismo.dia)} de {v(bautismo.mes)} de 20{v(bautismo.anio)}, como consta en el
-          libro de Bautismos No. {v(c.libroBautismo)} Foja {v(c.fojaBautismo)} Acta {v(c.actaBautismo)}.{" "}
-          {hijoHija.charAt(0).toUpperCase() + hijoHija.slice(1)} del Sr. {v(c.nombrePadre)}
-        </Text>
+            <Text style={styles.parrafo}>
+              el día {v(bautismo.dia)} de {v(bautismo.mes)} de 20{v(bautismo.anio)}, como consta en el
+              libro de Bautismos No. {v(c.libroBautismo)} Foja {v(c.fojaBautismo)} Acta {v(c.actaBautismo)}.{" "}
+              {hijoHija.charAt(0).toUpperCase() + hijoHija.slice(1)} del Sr. {v(c.nombrePadre)}
+            </Text>
 
-        <Text style={styles.parrafo}>y de la Sra. {v(c.nombreMadre)}</Text>
+            <Text style={styles.parrafo}>y de la Sra. {v(c.nombreMadre)}</Text>
 
-        <Text style={styles.parrafo}>
-          Padrinos: {v(c.padrino)} y {v(c.madrina)}
-        </Text>
+            <Text style={styles.parrafo}>
+              Padrinos: {v(c.padrino)} y {v(c.madrina)}
+            </Text>
 
-        <View style={styles.firmaUnica}>
-          <Text style={styles.doyFeTexto}>Doy Fe</Text>
-          <View style={styles.lineaFirma} />
-          <Text style={styles.firmaCaption}>El Párroco</Text>
+            <View style={styles.firmaUnica}>
+              <Text style={styles.doyFeTexto}>Doy Fe</Text>
+              <View style={styles.lineaFirma} />
+              <Text style={styles.firmaCaption}>El Párroco</Text>
+            </View>
+          </View>
         </View>
 
         <View style={{ marginTop: 40, borderTop: "1px solid #cbd5e1", paddingTop: 12 }}>

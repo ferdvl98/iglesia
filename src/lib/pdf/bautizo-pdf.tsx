@@ -11,10 +11,20 @@ const styles = StyleSheet.create({
     color: "#1c1c1c",
     lineHeight: 1.6,
   },
+  fila: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  columnaIzquierda: {
+    width: 120,
+  },
   actaNo: {
     fontSize: 11,
     fontStyle: "italic",
-    marginBottom: 16,
+  },
+  columnaDerecha: {
+    flex: 1,
+    paddingLeft: 12,
   },
   parrafo: {
     marginBottom: 10,
@@ -79,41 +89,47 @@ export function BautizoActaPdf({ acta }: { acta: ActaBautizo }) {
   return (
     <Document title={`Acta de Bautizo - ${acta.numeroActa}`}>
       <Page size="LETTER" style={styles.page}>
-        <Text style={styles.actaNo}>Acta No. {acta.numeroActa}</Text>
+        <View style={styles.fila}>
+          <View style={styles.columnaIzquierda}>
+            <Text style={styles.actaNo}>Acta No. {acta.numeroActa}</Text>
+          </View>
 
-        <Text style={styles.parrafo}>En la Parroquia de {v(acta.lugar || acta.iglesia.nombre)}</Text>
+          <View style={styles.columnaDerecha}>
+            <Text style={styles.parrafo}>En la Parroquia de {v(acta.lugar || acta.iglesia.nombre)}</Text>
 
-        <Text style={styles.parrafo}>
-          el día {v(dia)} de {v(mes)} de 20{v(anio)}, yo, el {v(acta.ministro)},
-        </Text>
+            <Text style={styles.parrafo}>
+              el día {v(dia)} de {v(mes)} de 20{v(anio)}, yo, el {v(acta.ministro)},
+            </Text>
 
-        <Text style={styles.parrafo}>
-          bauticé solemnemente a un {niñoNiña} que nació el día {v(nacimiento.dia)}
-        </Text>
+            <Text style={styles.parrafo}>
+              bauticé solemnemente a un {niñoNiña} que nació el día {v(nacimiento.dia)}
+            </Text>
 
-        <Text style={styles.parrafo}>
-          de {v(nacimiento.mes)} de 20{v(nacimiento.anio)} en {v(b.lugarNacimiento)},
-        </Text>
+            <Text style={styles.parrafo}>
+              de {v(nacimiento.mes)} de 20{v(nacimiento.anio)} en {v(b.lugarNacimiento)},
+            </Text>
 
-        <Text style={styles.parrafo}>y con domicilio en: {v(b.domicilio)},</Text>
+            <Text style={styles.parrafo}>y con domicilio en: {v(b.domicilio)},</Text>
 
-        <Text style={styles.parrafo}>
-          a quien puse por nombre {v(b.nombreCompleto)}, {hijoHija}
-        </Text>
+            <Text style={styles.parrafo}>
+              a quien puse por nombre {v(b.nombreCompleto)}, {hijoHija}
+            </Text>
 
-        <Text style={styles.parrafo}>del Sr. {v(b.nombrePadre)}</Text>
-        <Text style={styles.parrafo}>y de la Sra. {v(b.nombreMadre)}</Text>
+            <Text style={styles.parrafo}>del Sr. {v(b.nombrePadre)}</Text>
+            <Text style={styles.parrafo}>y de la Sra. {v(b.nombreMadre)}</Text>
 
-        <Text style={styles.parrafo}>fueron sus padrinos:</Text>
-        <Text style={styles.parrafo}>el Sr. {v(b.padrino)}</Text>
-        <Text style={styles.parrafo}>y la Sra. {v(b.madrina)}</Text>
+            <Text style={styles.parrafo}>fueron sus padrinos:</Text>
+            <Text style={styles.parrafo}>el Sr. {v(b.padrino)}</Text>
+            <Text style={styles.parrafo}>y la Sra. {v(b.madrina)}</Text>
 
-        <Text style={styles.parrafo}>a quienes advertí sus obligaciones y parentesco espiritual.</Text>
+            <Text style={styles.parrafo}>a quienes advertí sus obligaciones y parentesco espiritual.</Text>
 
-        <View style={styles.firmaUnica}>
-          <Text style={styles.doyFeTexto}>Doy Fe</Text>
-          <View style={styles.lineaFirma} />
-          <Text style={styles.firmaCaption}>El Párroco</Text>
+            <View style={styles.firmaUnica}>
+              <Text style={styles.doyFeTexto}>Doy Fe</Text>
+              <View style={styles.lineaFirma} />
+              <Text style={styles.firmaCaption}>El Párroco</Text>
+            </View>
+          </View>
         </View>
 
         {acta.observaciones && (
