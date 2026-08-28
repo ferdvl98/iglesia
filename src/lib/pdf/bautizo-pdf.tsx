@@ -25,10 +25,10 @@ const styles = StyleSheet.create({
   columnaDerecha: {
     flex: 1,
     paddingLeft: 12,
-  },
-  parrafo: {
-    marginBottom: 10,
     textAlign: "left",
+  },
+  dato: {
+    fontWeight: 700,
   },
   aviso: {
     marginTop: 24,
@@ -79,6 +79,10 @@ function v(valor: string | number | null | undefined) {
   return valor === null || valor === undefined || valor === "" ? "_______" : String(valor);
 }
 
+function Dato({ valor }: { valor: string | number | null | undefined }) {
+  return <Text style={styles.dato}>{v(valor)}</Text>;
+}
+
 export function BautizoActaPdf({ acta }: { acta: ActaBautizo }) {
   const { dia, mes, anio } = partesFecha(acta.fecha);
   const b = acta.bautizo;
@@ -95,34 +99,17 @@ export function BautizoActaPdf({ acta }: { acta: ActaBautizo }) {
           </View>
 
           <View style={styles.columnaDerecha}>
-            <Text style={styles.parrafo}>En la Parroquia de {v(acta.lugar || acta.iglesia.nombre)}</Text>
-
-            <Text style={styles.parrafo}>
-              el día {v(dia)} de {v(mes)} de 20{v(anio)}, yo, el {v(acta.ministro)},
+            <Text>
+              En la Parroquia de <Dato valor={acta.lugar || acta.iglesia.nombre} />, el día{" "}
+              <Dato valor={dia} /> de <Dato valor={mes} /> de 20<Dato valor={anio} />, yo, el{" "}
+              <Dato valor={acta.ministro} />, bauticé solemnemente a un {niñoNiña} que nació el día{" "}
+              <Dato valor={nacimiento.dia} /> de <Dato valor={nacimiento.mes} /> de 20
+              <Dato valor={nacimiento.anio} /> en <Dato valor={b.lugarNacimiento} />, y con domicilio en:{" "}
+              <Dato valor={b.domicilio} />, a quien puse por nombre <Dato valor={b.nombreCompleto} />,{" "}
+              {hijoHija} del Sr. <Dato valor={b.nombrePadre} /> y de la Sra. <Dato valor={b.nombreMadre} />;
+              fueron sus padrinos el Sr. <Dato valor={b.padrino} /> y la Sra. <Dato valor={b.madrina} />, a
+              quienes advertí sus obligaciones y parentesco espiritual.
             </Text>
-
-            <Text style={styles.parrafo}>
-              bauticé solemnemente a un {niñoNiña} que nació el día {v(nacimiento.dia)}
-            </Text>
-
-            <Text style={styles.parrafo}>
-              de {v(nacimiento.mes)} de 20{v(nacimiento.anio)} en {v(b.lugarNacimiento)},
-            </Text>
-
-            <Text style={styles.parrafo}>y con domicilio en: {v(b.domicilio)},</Text>
-
-            <Text style={styles.parrafo}>
-              a quien puse por nombre {v(b.nombreCompleto)}, {hijoHija}
-            </Text>
-
-            <Text style={styles.parrafo}>del Sr. {v(b.nombrePadre)}</Text>
-            <Text style={styles.parrafo}>y de la Sra. {v(b.nombreMadre)}</Text>
-
-            <Text style={styles.parrafo}>fueron sus padrinos:</Text>
-            <Text style={styles.parrafo}>el Sr. {v(b.padrino)}</Text>
-            <Text style={styles.parrafo}>y la Sra. {v(b.madrina)}</Text>
-
-            <Text style={styles.parrafo}>a quienes advertí sus obligaciones y parentesco espiritual.</Text>
 
             <View style={styles.firmaUnica}>
               <Text style={styles.doyFeTexto}>Doy Fe</Text>

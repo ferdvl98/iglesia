@@ -41,6 +41,9 @@ const styles = StyleSheet.create({
   parrafo: {
     marginBottom: 10,
   },
+  dato: {
+    fontWeight: 700,
+  },
   cursiva: {
     fontStyle: "italic",
   },
@@ -92,6 +95,10 @@ function v(valor: string | number | null | undefined) {
   return valor === null || valor === undefined || valor === "" ? "_______" : String(valor);
 }
 
+function Dato({ valor }: { valor: string | number | null | undefined }) {
+  return <Text style={styles.dato}>{v(valor)}</Text>;
+}
+
 export function MatrimonioActaPdf({ acta }: { acta: ActaMatrimonio }) {
   const { dia, mes, anio } = partesFecha(acta.fecha);
   const m = acta.matrimonio;
@@ -109,28 +116,37 @@ export function MatrimonioActaPdf({ acta }: { acta: ActaMatrimonio }) {
 
           <View style={styles.cuerpo}>
             <Text style={styles.parrafo}>
-              En {v(acta.iglesia.ciudad)}, el día {v(dia)} del mes de {v(mes)} del año de {v(anio)}, en la
-              Iglesia {v(acta.lugar || acta.iglesia.nombre)}, el Sr. {v(acta.ministro)} con la debida
-              autorización asistió al matrimonio canónico válido y lícito <Text style={styles.cursiva}>In Facie Eclesiae</Text> y
-              por palabras del presente del Sr. {v(m.nombreEsposo)} y la Sra. {v(m.nombreEsposa)},
+              En <Dato valor={acta.iglesia.ciudad} />, el día <Dato valor={dia} /> del mes de{" "}
+              <Dato valor={mes} /> del año de <Dato valor={anio} />, en la Iglesia{" "}
+              <Dato valor={acta.lugar || acta.iglesia.nombre} />, el Sr. <Dato valor={acta.ministro} /> con
+              la debida autorización asistió al matrimonio canónico válido y lícito{" "}
+              <Text style={styles.cursiva}>In Facie Eclesiae</Text> y por palabras del presente del Sr.{" "}
+              <Dato valor={m.nombreEsposo} /> y la Sra. <Dato valor={m.nombreEsposa} />,
             </Text>
 
             <Text style={styles.parrafo}>
-              siendo él {v(m.estadoCivilEsposo)} de {v(m.edadEsposo)} años, hijo de {v(m.padreEsposo)} y de{" "}
-              {v(m.madreEsposo)}, originario de {v(m.origenEsposo)} y con domicilio en {v(m.domicilioEsposo)};
+              siendo él <Dato valor={m.estadoCivilEsposo} /> de <Dato valor={m.edadEsposo} /> años, hijo de{" "}
+              <Dato valor={m.padreEsposo} /> y de <Dato valor={m.madreEsposo} />, originario de{" "}
+              <Dato valor={m.origenEsposo} /> y con domicilio en <Dato valor={m.domicilioEsposo} />;
             </Text>
 
             <Text style={styles.parrafo}>
-              y ella {v(m.estadoCivilEsposa)} de {v(m.edadEsposa)} años, hija de {v(m.padreEsposa)} y de{" "}
-              {v(m.madreEsposa)}, originaria de {v(m.origenEsposa)}, vecina de {v(m.domicilioEsposa)}.
+              y ella <Dato valor={m.estadoCivilEsposa} /> de <Dato valor={m.edadEsposa} /> años, hija de{" "}
+              <Dato valor={m.padreEsposa} /> y de <Dato valor={m.madreEsposa} />, originaria de{" "}
+              <Dato valor={m.origenEsposa} />, vecina de <Dato valor={m.domicilioEsposa} />.
             </Text>
 
             <Text style={styles.parrafo}>
-              Fueron testigos {v(m.testigo1)}{m.testigo2 ? ` y ${m.testigo2}` : ""}.
-              {m.actaCivilNumero ? ` Acta civil No. ${m.actaCivilNumero}.` : ""}
+              Fueron testigos <Dato valor={m.testigo1} />
+              {m.testigo2 ? <> y <Dato valor={m.testigo2} /></> : ""}.
+              {m.actaCivilNumero ? <> Acta civil No. <Dato valor={m.actaCivilNumero} />.</> : ""}
             </Text>
 
-            {lugarCivil && <Text style={styles.parrafo}>Se tramitó en {lugarCivil}.</Text>}
+            {lugarCivil && (
+              <Text style={styles.parrafo}>
+                Se tramitó en <Dato valor={lugarCivil} />.
+              </Text>
+            )}
           </View>
         </View>
 
