@@ -7,6 +7,9 @@ import { formatearFecha as fmt } from "@/lib/fecha";
 import { obtenerConfiguracion } from "@/lib/configuracion";
 import { AnularActaForm } from "./anular-form";
 import { ReimprimirButton } from "./reimprimir-button";
+import { NotasMarginalesForm } from "./notas-marginales-form";
+
+const SEXO_LABEL: Record<string, string> = { MASCULINO: "Niño", FEMENINO: "Niña" };
 
 function Fila({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -99,13 +102,29 @@ export default async function ActaDetallePage({
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Datos del bautizado</h2>
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Fila label="Nombre completo" value={acta.bautizo.nombreCompleto} />
+            <Fila label="Sexo" value={acta.bautizo.sexo ? SEXO_LABEL[acta.bautizo.sexo] : null} />
             <Fila label="Fecha de nacimiento" value={fmt(acta.bautizo.fechaNacimiento)} />
             <Fila label="Lugar de nacimiento" value={acta.bautizo.lugarNacimiento} />
+            <Fila label="Domicilio" value={acta.bautizo.domicilio} />
             <Fila label="Padre" value={acta.bautizo.nombrePadre} />
             <Fila label="Madre" value={acta.bautizo.nombreMadre} />
             <Fila label="Padrino" value={acta.bautizo.padrino} />
             <Fila label="Madrina" value={acta.bautizo.madrina} />
           </dl>
+        </div>
+      )}
+
+      {acta.bautizo && (
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">Notas marginales</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Anotaciones posteriores al registro: si esta persona se confirmó o contrajo matrimonio.
+          </p>
+          {permisoEscritura ? (
+            <NotasMarginalesForm actaId={acta.id} notasActuales={acta.bautizo.notasMarginales} />
+          ) : (
+            <p className="text-sm text-slate-900">{acta.bautizo.notasMarginales || "-"}</p>
+          )}
         </div>
       )}
 
@@ -129,13 +148,37 @@ export default async function ActaDetallePage({
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Datos del confirmando</h2>
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Fila label="Nombre completo" value={acta.confirmacion.nombreCompleto} />
+            <Fila label="Sexo" value={acta.confirmacion.sexo ? SEXO_LABEL[acta.confirmacion.sexo] : null} />
             <Fila label="Fecha de nacimiento" value={fmt(acta.confirmacion.fechaNacimiento)} />
+            <Fila label="Lugar de nacimiento" value={acta.confirmacion.lugarNacimiento} />
             <Fila label="Padre" value={acta.confirmacion.nombrePadre} />
             <Fila label="Madre" value={acta.confirmacion.nombreMadre} />
             <Fila label="Padrino" value={acta.confirmacion.padrino} />
             <Fila label="Madrina" value={acta.confirmacion.madrina} />
             <Fila label="Obispo / ministro" value={acta.confirmacion.obispoMinistro} />
           </dl>
+          <h3 className="mb-3 mt-5 text-sm font-semibold text-slate-900">Bautismo de referencia</h3>
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Fila label="Parroquia" value={acta.confirmacion.parroquiaBautismo} />
+            <Fila label="Fecha" value={fmt(acta.confirmacion.fechaBautismo)} />
+            <Fila label="Libro" value={acta.confirmacion.libroBautismo} />
+            <Fila label="Foja" value={acta.confirmacion.fojaBautismo} />
+            <Fila label="Acta" value={acta.confirmacion.actaBautismo} />
+          </dl>
+        </div>
+      )}
+
+      {acta.confirmacion && (
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">Notas marginales</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Anotaciones posteriores al registro: si esta persona contrajo matrimonio.
+          </p>
+          {permisoEscritura ? (
+            <NotasMarginalesForm actaId={acta.id} notasActuales={acta.confirmacion.notasMarginales} />
+          ) : (
+            <p className="text-sm text-slate-900">{acta.confirmacion.notasMarginales || "-"}</p>
+          )}
         </div>
       )}
 
@@ -145,15 +188,24 @@ export default async function ActaDetallePage({
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Fila label="Esposo" value={acta.matrimonio.nombreEsposo} />
             <Fila label="Fecha nac. esposo" value={fmt(acta.matrimonio.fechaNacimientoEsposo)} />
+            <Fila label="Estado civil" value={acta.matrimonio.estadoCivilEsposo} />
+            <Fila label="Edad" value={acta.matrimonio.edadEsposo} />
+            <Fila label="Originario de" value={acta.matrimonio.origenEsposo} />
+            <Fila label="Domicilio" value={acta.matrimonio.domicilioEsposo} />
             <Fila label="Padre del esposo" value={acta.matrimonio.padreEsposo} />
             <Fila label="Madre del esposo" value={acta.matrimonio.madreEsposo} />
             <Fila label="Esposa" value={acta.matrimonio.nombreEsposa} />
             <Fila label="Fecha nac. esposa" value={fmt(acta.matrimonio.fechaNacimientoEsposa)} />
+            <Fila label="Estado civil" value={acta.matrimonio.estadoCivilEsposa} />
+            <Fila label="Edad" value={acta.matrimonio.edadEsposa} />
+            <Fila label="Originaria de" value={acta.matrimonio.origenEsposa} />
+            <Fila label="Domicilio (vecina de)" value={acta.matrimonio.domicilioEsposa} />
             <Fila label="Padre de la esposa" value={acta.matrimonio.padreEsposa} />
             <Fila label="Madre de la esposa" value={acta.matrimonio.madreEsposa} />
             <Fila label="Testigo 1" value={acta.matrimonio.testigo1} />
             <Fila label="Testigo 2" value={acta.matrimonio.testigo2} />
             <Fila label="No. acta civil" value={acta.matrimonio.actaCivilNumero} />
+            <Fila label="Se tramitó en" value={acta.matrimonio.lugarTramite} />
           </dl>
         </div>
       )}

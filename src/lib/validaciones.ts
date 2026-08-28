@@ -13,8 +13,10 @@ export const baseActaSchema = z.object({
 
 export const bautizoSchema = baseActaSchema.extend({
   nombreCompleto: campoTexto,
+  sexo: campoOpcional,
   fechaNacimiento: campoOpcional,
   lugarNacimiento: campoOpcional,
+  domicilio: campoOpcional,
   nombrePadre: campoOpcional,
   nombreMadre: campoOpcional,
   padrino: campoOpcional,
@@ -33,26 +35,42 @@ export const primeraComunionSchema = baseActaSchema.extend({
 
 export const confirmacionSchema = baseActaSchema.extend({
   nombreCompleto: campoTexto,
+  sexo: campoOpcional,
   fechaNacimiento: campoOpcional,
+  lugarNacimiento: campoOpcional,
   nombrePadre: campoOpcional,
   nombreMadre: campoOpcional,
   padrino: campoOpcional,
   madrina: campoOpcional,
   obispoMinistro: campoOpcional,
+  parroquiaBautismo: campoOpcional,
+  fechaBautismo: campoOpcional,
+  libroBautismo: campoOpcional,
+  fojaBautismo: campoOpcional,
+  actaBautismo: campoOpcional,
 });
 
 export const matrimonioSchema = baseActaSchema.extend({
   nombreEsposo: campoTexto,
   fechaNacimientoEsposo: campoOpcional,
+  estadoCivilEsposo: campoOpcional,
+  edadEsposo: campoOpcional,
+  origenEsposo: campoOpcional,
+  domicilioEsposo: campoOpcional,
   padreEsposo: campoOpcional,
   madreEsposo: campoOpcional,
   nombreEsposa: campoTexto,
   fechaNacimientoEsposa: campoOpcional,
+  estadoCivilEsposa: campoOpcional,
+  edadEsposa: campoOpcional,
+  origenEsposa: campoOpcional,
+  domicilioEsposa: campoOpcional,
   padreEsposa: campoOpcional,
   madreEsposa: campoOpcional,
   testigo1: campoOpcional,
   testigo2: campoOpcional,
   actaCivilNumero: campoOpcional,
+  lugarTramite: campoOpcional,
 });
 
 export type BautizoInput = z.infer<typeof bautizoSchema>;

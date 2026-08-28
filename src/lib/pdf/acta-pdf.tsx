@@ -2,6 +2,9 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { Acta, Iglesia, Bautizo, PrimeraComunion, Confirmacion, Matrimonio } from "@prisma/client";
 import { TIPO_ACTA_LABEL } from "@/lib/tipos-acta";
 import { formatearFechaLarga } from "@/lib/fecha";
+import { MatrimonioActaPdf } from "@/lib/pdf/matrimonio-pdf";
+import { BautizoActaPdf } from "@/lib/pdf/bautizo-pdf";
+import { ConfirmacionActaPdf } from "@/lib/pdf/confirmacion-pdf";
 
 type ActaCompleta = Acta & {
   iglesia: Iglesia;
@@ -114,6 +117,16 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string | null | u
 }
 
 export function ActaPdfDocument({ acta }: { acta: ActaCompleta }) {
+  if (acta.tipo === "MATRIMONIO" && acta.matrimonio) {
+    return <MatrimonioActaPdf acta={{ ...acta, matrimonio: acta.matrimonio }} />;
+  }
+  if (acta.tipo === "BAUTIZO" && acta.bautizo) {
+    return <BautizoActaPdf acta={{ ...acta, bautizo: acta.bautizo }} />;
+  }
+  if (acta.tipo === "CONFIRMACION" && acta.confirmacion) {
+    return <ConfirmacionActaPdf acta={{ ...acta, confirmacion: acta.confirmacion }} />;
+  }
+
   return (
     <Document title={`Acta de ${TIPO_ACTA_LABEL[acta.tipo]} - ${acta.numeroActa}`}>
       <Page size="LETTER" style={styles.page}>

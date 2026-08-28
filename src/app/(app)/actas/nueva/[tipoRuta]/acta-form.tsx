@@ -223,8 +223,24 @@ export function ActaForm({
       {tipo === "BAUTIZO" && (
         <Seccion titulo="Datos del bautizado">
           <Campo label="Nombre completo" name="nombreCompleto" required />
+          <div>
+            <label htmlFor="sexo" className="block text-xs font-medium text-slate-600">
+              Sexo
+            </label>
+            <select
+              id="sexo"
+              name="sexo"
+              defaultValue=""
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="">-- Selecciona --</option>
+              <option value="MASCULINO">Niño</option>
+              <option value="FEMENINO">Niña</option>
+            </select>
+          </div>
           <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
           <Campo label="Lugar de nacimiento" name="lugarNacimiento" />
+          <Campo label="Domicilio" name="domicilio" />
           <Campo label="Nombre del padre" name="nombrePadre" />
           <Campo label="Nombre de la madre" name="nombreMadre" />
           <Campo label="Padrino" name="padrino" />
@@ -245,15 +261,40 @@ export function ActaForm({
       )}
 
       {tipo === "CONFIRMACION" && (
-        <Seccion titulo="Datos del confirmando">
-          <Campo label="Nombre completo" name="nombreCompleto" required />
-          <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
-          <Campo label="Nombre del padre" name="nombrePadre" />
-          <Campo label="Nombre de la madre" name="nombreMadre" />
-          <Campo label="Padrino" name="padrino" />
-          <Campo label="Madrina" name="madrina" />
-          <Campo label="Obispo / ministro" name="obispoMinistro" />
-        </Seccion>
+        <>
+          <Seccion titulo="Datos del confirmando">
+            <Campo label="Nombre completo" name="nombreCompleto" required />
+            <div>
+              <label htmlFor="sexo" className="block text-xs font-medium text-slate-600">
+                Sexo
+              </label>
+              <select
+                id="sexo"
+                name="sexo"
+                defaultValue=""
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">-- Selecciona --</option>
+                <option value="MASCULINO">Masculino</option>
+                <option value="FEMENINO">Femenino</option>
+              </select>
+            </div>
+            <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
+            <Campo label="Lugar de nacimiento" name="lugarNacimiento" />
+            <Campo label="Nombre del padre" name="nombrePadre" />
+            <Campo label="Nombre de la madre" name="nombreMadre" />
+            <Campo label="Padrino" name="padrino" />
+            <Campo label="Madrina" name="madrina" />
+            <Campo label="Obispo / ministro" name="obispoMinistro" />
+          </Seccion>
+          <Seccion titulo="Bautismo de referencia">
+            <Campo label="Parroquia donde fue bautizado" name="parroquiaBautismo" />
+            <Campo label="Fecha de bautismo" name="fechaBautismo" type="date" />
+            <Campo label="Libro de bautismos" name="libroBautismo" />
+            <Campo label="Foja" name="fojaBautismo" type="number" min="1" />
+            <Campo label="No. de acta de bautismo" name="actaBautismo" type="number" min="1" />
+          </Seccion>
+        </>
       )}
 
       {tipo === "MATRIMONIO" && (
@@ -261,12 +302,28 @@ export function ActaForm({
           <Seccion titulo="Datos del esposo">
             <Campo label="Nombre completo" name="nombreEsposo" required />
             <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposo" type="date" />
+            <Campo
+              label="Estado civil"
+              name="estadoCivilEsposo"
+              hint='Ej. "soltero", "viudo"'
+            />
+            <Campo label="Edad" name="edadEsposo" type="number" min="0" />
+            <Campo label="Originario de" name="origenEsposo" />
+            <Campo label="Domicilio" name="domicilioEsposo" />
             <Campo label="Nombre del padre" name="padreEsposo" />
             <Campo label="Nombre de la madre" name="madreEsposo" />
           </Seccion>
           <Seccion titulo="Datos de la esposa">
             <Campo label="Nombre completo" name="nombreEsposa" required />
             <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposa" type="date" />
+            <Campo
+              label="Estado civil"
+              name="estadoCivilEsposa"
+              hint='Ej. "soltera", "viuda"'
+            />
+            <Campo label="Edad" name="edadEsposa" type="number" min="0" />
+            <Campo label="Originaria de" name="origenEsposa" />
+            <Campo label="Domicilio (vecina de)" name="domicilioEsposa" />
             <Campo label="Nombre del padre" name="padreEsposa" />
             <Campo label="Nombre de la madre" name="madreEsposa" />
           </Seccion>
@@ -274,6 +331,7 @@ export function ActaForm({
             <Campo label="Testigo 1" name="testigo1" />
             <Campo label="Testigo 2" name="testigo2" />
             <Campo label="No. de acta civil" name="actaCivilNumero" />
+            <Campo label="Se tramitó en" name="lugarTramite" />
           </Seccion>
         </>
       )}

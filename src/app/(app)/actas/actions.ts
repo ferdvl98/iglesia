@@ -43,6 +43,16 @@ function limpiar(valor: string | undefined | null) {
   return valor && valor.trim() !== "" ? valor.trim() : null;
 }
 
+function limpiarEntero(valor: string | undefined | null) {
+  if (!valor || valor.trim() === "") return null;
+  const n = Number.parseInt(valor, 10);
+  return Number.isNaN(n) ? null : n;
+}
+
+function limpiarSexo(valor: string | undefined | null): "MASCULINO" | "FEMENINO" | null {
+  return valor === "MASCULINO" || valor === "FEMENINO" ? valor : null;
+}
+
 /** Resuelve el texto del ministro/celebrante a partir del registro
  * seleccionado (snapshot de título + nombre), o del texto manual si se
  * escribió "Otro" o no hay registro elegido. */
@@ -234,8 +244,10 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
       const datos = bautizoSchema.parse({
         ...base,
         nombreCompleto: formData.get("nombreCompleto"),
+        sexo: formData.get("sexo"),
         fechaNacimiento: formData.get("fechaNacimiento"),
         lugarNacimiento: formData.get("lugarNacimiento"),
+        domicilio: formData.get("domicilio"),
         nombrePadre: formData.get("nombrePadre"),
         nombreMadre: formData.get("nombreMadre"),
         padrino: formData.get("padrino"),
@@ -256,8 +268,10 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
           bautizo: {
             create: {
               nombreCompleto: datos.nombreCompleto,
+              sexo: limpiarSexo(datos.sexo),
               fechaNacimiento: datos.fechaNacimiento ? new Date(datos.fechaNacimiento) : null,
               lugarNacimiento: limpiar(datos.lugarNacimiento),
+              domicilio: limpiar(datos.domicilio),
               nombrePadre: limpiar(datos.nombrePadre),
               nombreMadre: limpiar(datos.nombreMadre),
               padrino: limpiar(datos.padrino),
@@ -308,12 +322,19 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
       const datos = confirmacionSchema.parse({
         ...base,
         nombreCompleto: formData.get("nombreCompleto"),
+        sexo: formData.get("sexo"),
         fechaNacimiento: formData.get("fechaNacimiento"),
+        lugarNacimiento: formData.get("lugarNacimiento"),
         nombrePadre: formData.get("nombrePadre"),
         nombreMadre: formData.get("nombreMadre"),
         padrino: formData.get("padrino"),
         madrina: formData.get("madrina"),
         obispoMinistro: formData.get("obispoMinistro"),
+        parroquiaBautismo: formData.get("parroquiaBautismo"),
+        fechaBautismo: formData.get("fechaBautismo"),
+        libroBautismo: formData.get("libroBautismo"),
+        fojaBautismo: formData.get("fojaBautismo"),
+        actaBautismo: formData.get("actaBautismo"),
       });
       const acta = await crearActaConUbicacion({
         iglesiaId,
@@ -330,12 +351,19 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
           confirmacion: {
             create: {
               nombreCompleto: datos.nombreCompleto,
+              sexo: limpiarSexo(datos.sexo),
               fechaNacimiento: datos.fechaNacimiento ? new Date(datos.fechaNacimiento) : null,
+              lugarNacimiento: limpiar(datos.lugarNacimiento),
               nombrePadre: limpiar(datos.nombrePadre),
               nombreMadre: limpiar(datos.nombreMadre),
               padrino: limpiar(datos.padrino),
               madrina: limpiar(datos.madrina),
               obispoMinistro: limpiar(datos.obispoMinistro),
+              parroquiaBautismo: limpiar(datos.parroquiaBautismo),
+              fechaBautismo: datos.fechaBautismo ? new Date(datos.fechaBautismo) : null,
+              libroBautismo: limpiar(datos.libroBautismo),
+              fojaBautismo: limpiarEntero(datos.fojaBautismo),
+              actaBautismo: limpiarEntero(datos.actaBautismo),
             },
           },
         },
@@ -346,15 +374,24 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         ...base,
         nombreEsposo: formData.get("nombreEsposo"),
         fechaNacimientoEsposo: formData.get("fechaNacimientoEsposo"),
+        estadoCivilEsposo: formData.get("estadoCivilEsposo"),
+        edadEsposo: formData.get("edadEsposo"),
+        origenEsposo: formData.get("origenEsposo"),
+        domicilioEsposo: formData.get("domicilioEsposo"),
         padreEsposo: formData.get("padreEsposo"),
         madreEsposo: formData.get("madreEsposo"),
         nombreEsposa: formData.get("nombreEsposa"),
         fechaNacimientoEsposa: formData.get("fechaNacimientoEsposa"),
+        estadoCivilEsposa: formData.get("estadoCivilEsposa"),
+        edadEsposa: formData.get("edadEsposa"),
+        origenEsposa: formData.get("origenEsposa"),
+        domicilioEsposa: formData.get("domicilioEsposa"),
         padreEsposa: formData.get("padreEsposa"),
         madreEsposa: formData.get("madreEsposa"),
         testigo1: formData.get("testigo1"),
         testigo2: formData.get("testigo2"),
         actaCivilNumero: formData.get("actaCivilNumero"),
+        lugarTramite: formData.get("lugarTramite"),
       });
       const acta = await crearActaConUbicacion({
         iglesiaId,
@@ -374,17 +411,26 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
               fechaNacimientoEsposo: datos.fechaNacimientoEsposo
                 ? new Date(datos.fechaNacimientoEsposo)
                 : null,
+              estadoCivilEsposo: limpiar(datos.estadoCivilEsposo),
+              edadEsposo: limpiarEntero(datos.edadEsposo),
+              origenEsposo: limpiar(datos.origenEsposo),
+              domicilioEsposo: limpiar(datos.domicilioEsposo),
               padreEsposo: limpiar(datos.padreEsposo),
               madreEsposo: limpiar(datos.madreEsposo),
               nombreEsposa: datos.nombreEsposa,
               fechaNacimientoEsposa: datos.fechaNacimientoEsposa
                 ? new Date(datos.fechaNacimientoEsposa)
                 : null,
+              estadoCivilEsposa: limpiar(datos.estadoCivilEsposa),
+              edadEsposa: limpiarEntero(datos.edadEsposa),
+              origenEsposa: limpiar(datos.origenEsposa),
+              domicilioEsposa: limpiar(datos.domicilioEsposa),
               padreEsposa: limpiar(datos.padreEsposa),
               madreEsposa: limpiar(datos.madreEsposa),
               testigo1: limpiar(datos.testigo1),
               testigo2: limpiar(datos.testigo2),
               actaCivilNumero: limpiar(datos.actaCivilNumero),
+              lugarTramite: limpiar(datos.lugarTramite),
             },
           },
         },
@@ -399,6 +445,48 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
 
   revalidatePath("/actas");
   return { ok: true, actaId };
+}
+
+/** Actualiza las notas marginales de un bautizo o confirmación (anotación
+ * posterior de que esa misma persona se confirmó o contrajo matrimonio, con
+ * fecha y libro/acta de referencia si aplica). */
+export async function actualizarNotasMarginalesAction(
+  _prevState: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const sesion = await requireSesion();
+  if (!puedeEscribir(sesion)) return { error: "No tienes permiso para editar actas." };
+
+  const actaId = formData.get("actaId");
+  const notas = formData.get("notasMarginales");
+  if (typeof actaId !== "string") return { error: "Acta inválida." };
+
+  const acta = await prisma.acta.findUnique({
+    where: { id: actaId },
+    include: { bautizo: true, confirmacion: true },
+  });
+  if (!acta || (!acta.bautizo && !acta.confirmacion)) {
+    return { error: "Esta acta no admite notas marginales." };
+  }
+  if (!sesion.esSuperAdmin && acta.iglesiaId !== sesion.iglesiaId) {
+    return { error: "No tienes acceso a esta acta." };
+  }
+
+  const notasLimpias = limpiar(typeof notas === "string" ? notas : null);
+
+  try {
+    if (acta.bautizo) {
+      await prisma.bautizo.update({ where: { actaId }, data: { notasMarginales: notasLimpias } });
+    } else {
+      await prisma.confirmacion.update({ where: { actaId }, data: { notasMarginales: notasLimpias } });
+    }
+  } catch (e) {
+    if (esErrorDeUsuarioInvalido(e)) return { error: MENSAJE_SESION_INVALIDA };
+    throw e;
+  }
+
+  revalidatePath(`/actas/${actaId}`);
+  return null;
 }
 
 export async function anularActa(actaId: string, motivo: string) {

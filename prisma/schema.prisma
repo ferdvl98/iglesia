@@ -44,6 +44,11 @@ enum TipoProducto {
   SERVICIO // no maneja inventario (ej. misas)
 }
 
+enum Sexo {
+  MASCULINO
+  FEMENINO
+}
+
 model Iglesia {
   id        String   @id @default(cuid())
   nombre    String
@@ -406,12 +411,17 @@ model Bautizo {
   acta              Acta    @relation(fields: [actaId], references: [id], onDelete: Cascade)
 
   nombreCompleto    String
+  sexo              Sexo?
   fechaNacimiento   DateTime?
   lugarNacimiento   String?
+  domicilio         String?
   nombrePadre       String?
   nombreMadre       String?
   padrino           String?
   madrina           String?
+  // Anotaciones agregadas después del registro (canónicamente obligatorias):
+  // cuándo y dónde se confirmó o contrajo matrimonio esta misma persona.
+  notasMarginales   String?
 
   @@map("bautizos")
 }
@@ -438,12 +448,24 @@ model Confirmacion {
   acta              Acta    @relation(fields: [actaId], references: [id], onDelete: Cascade)
 
   nombreCompleto    String
+  sexo              Sexo?
   fechaNacimiento   DateTime?
+  lugarNacimiento   String?
   nombrePadre       String?
   nombreMadre       String?
   padrino           String?
   madrina           String?
   obispoMinistro    String?
+
+  // Referencia al bautismo de la misma persona (libro de Bautismos donde consta)
+  parroquiaBautismo String?
+  fechaBautismo     DateTime?
+  libroBautismo     String?
+  fojaBautismo      Int?
+  actaBautismo      Int?
+
+  // Anotación posterior: si esta misma persona contrajo matrimonio después.
+  notasMarginales   String?
 
   @@map("confirmaciones")
 }
@@ -455,17 +477,26 @@ model Matrimonio {
 
   nombreEsposo           String
   fechaNacimientoEsposo  DateTime?
+  estadoCivilEsposo      String? // p.ej. "soltero", "viudo"
+  edadEsposo             Int?
+  origenEsposo           String? // originario de...
+  domicilioEsposo        String?
   padreEsposo            String?
   madreEsposo            String?
 
   nombreEsposa           String
   fechaNacimientoEsposa  DateTime?
+  estadoCivilEsposa      String?
+  edadEsposa             Int?
+  origenEsposa           String? // originaria de...
+  domicilioEsposa        String? // vecina de...
   padreEsposa            String?
   madreEsposa            String?
 
   testigo1               String?
   testigo2               String?
   actaCivilNumero        String?
+  lugarTramite           String? // dónde se tramitó (oficialía / registro civil)
 
   @@map("matrimonios")
 }
