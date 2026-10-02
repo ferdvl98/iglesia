@@ -128,6 +128,7 @@ export function PrimeraComunionActaPdf({ acta }: { acta: ActaPrimeraComunion }) 
   const nombreCompleto = `${pc.nombre} ${pc.apellidos}`.trim().toUpperCase();
   const bautismo = partesFecha(pc.fechaBautismo);
   const bautizadoA = pc.sexo === "FEMENINO" ? "bautizada" : pc.sexo === "MASCULINO" ? "bautizado" : "bautizado(a)";
+  const hijoHija = pc.sexo === "FEMENINO" ? "Hija" : pc.sexo === "MASCULINO" ? "Hijo" : "Hijo(a)";
 
   return (
     <Document title={`Acta de Primera Comunión - ${acta.numeroActa}`}>
@@ -160,7 +161,7 @@ export function PrimeraComunionActaPdf({ acta }: { acta: ActaPrimeraComunion }) 
         </View>
 
         <Text style={styles.centrado}>
-          Hijo de: <Dato valor={mayus(pc.nombrePadre)} /> y <Dato valor={mayus(pc.nombreMadre)} />.
+          {hijoHija} de: <Dato valor={mayus(pc.nombrePadre)} /> y <Dato valor={mayus(pc.nombreMadre)} />.
         </Text>
 
         <Text style={styles.centrado}>
