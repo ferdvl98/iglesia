@@ -116,9 +116,9 @@ export function MatrimonioActaPdf({ acta }: { acta: ActaMatrimonio }) {
 
           <View style={styles.cuerpo}>
             <Text style={styles.parrafo}>
-              En <Dato valor={acta.iglesia.ciudad} />, el día <Dato valor={dia} /> del mes de{" "}
-              <Dato valor={mes} /> del año de <Dato valor={anio} />, en la Iglesia{" "}
-              <Dato valor={acta.lugar || acta.iglesia.nombre} />, el Sr. <Dato valor={acta.ministro} /> con
+              En la Parroquia de <Dato valor={acta.lugar || acta.iglesia.nombre} />, el día{" "}
+              <Dato valor={dia} /> del mes de <Dato valor={mes} /> del año de <Dato valor={anio} />, el Sr.{" "}
+              <Dato valor={acta.ministro} /> con
               la debida autorización asistió al matrimonio canónico válido y lícito{" "}
               <Text style={styles.cursiva}>In Facie Eclesiae</Text> y por palabras del presente del Sr.{" "}
               <Dato valor={m.nombreEsposo} /> y la Sra. <Dato valor={m.nombreEsposa} />,
