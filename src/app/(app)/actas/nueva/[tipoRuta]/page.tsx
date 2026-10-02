@@ -14,10 +14,15 @@ import { ActaForm } from "./acta-form";
 
 export default async function NuevaActaTipoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tipoRuta: string }>;
+  searchParams: Promise<{ libro?: string; historico?: string }>;
 }) {
   const { tipoRuta } = await params;
+  // Al encadenar altas desde el acta recién creada se conserva el libro y, si
+  // se está digitalizando, también el modo de captura histórica.
+  const query = await searchParams;
   const tipo = rutaATipo(tipoRuta);
   if (!tipo) notFound();
 
@@ -80,6 +85,8 @@ export default async function NuevaActaTipoPage({
       </div>
       <ActaForm
         tipo={tipo}
+        libroInicial={query.libro}
+        historicoInicial={query.historico === "1"}
         iglesias={iglesias}
         ministros={ministros}
         puedeAdministrarMinistros={puedeAdministrarMinistros(sesion)}

@@ -23,6 +23,8 @@ export function ActaForm({
   libros,
   partidasPorFoja = PARTIDAS_POR_FOJA_DEFECTO,
   precioRegistro,
+  libroInicial,
+  historicoInicial = false,
 }: {
   tipo: TipoActa;
   iglesias: Iglesia[];
@@ -31,6 +33,8 @@ export function ActaForm({
   libros: LibroInfo[];
   partidasPorFoja?: number;
   precioRegistro?: number | null;
+  libroInicial?: string;
+  historicoInicial?: boolean;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -50,19 +54,31 @@ export function ActaForm({
   );
   const libroDisponible = [...libros].reverse().find((l) => !l.lleno);
   const [libroSeleccionado, setLibroSeleccionado] = useState(
-    libroDisponible ? libroDisponible.libro : NUEVO_LIBRO,
+    libroInicial && libros.some((l) => l.libro === libroInicial)
+      ? libroInicial
+      : libroDisponible
+        ? libroDisponible.libro
+        : NUEVO_LIBRO,
   );
   const [nuevoLibro, setNuevoLibro] = useState("");
+  // Captura retroactiva: el libro viejo trae su propia numeración, con huecos
+  // y sin orden, así que la partida la escribe el capturista.
+  const [historico, setHistorico] = useState(historicoInicial);
+  const [partidaManual, setPartidaManual] = useState("");
 
   const escribiendoLibroNuevo = libros.length === 0 || libroSeleccionado === NUEVO_LIBRO;
   const libro = escribiendoLibroNuevo ? nuevoLibro.trim() : libroSeleccionado;
   const infoLibroSeleccionado = libros.find((l) => l.libro === libroSeleccionado);
   const siguientePartida = escribiendoLibroNuevo ? 1 : infoLibroSeleccionado?.siguientePartida ?? 1;
-  const foja = Math.ceil(siguientePartida / partidasPorFoja);
-  const posicion = siguientePartida - (foja - 1) * partidasPorFoja;
+  const partidaEfectiva =
+    historico && /^\d+$/.test(partidaManual) ? Number(partidaManual) : siguientePartida;
+  const foja = Math.ceil(partidaEfectiva / partidasPorFoja);
+  const posicion = partidaEfectiva - (foja - 1) * partidasPorFoja;
   const libroSeleccionadoLleno = !escribiendoLibroNuevo && infoLibroSeleccionado?.lleno;
 
-  const requierePago = !!precioRegistro && precioRegistro > 0;
+  // No se le cobra a la parroquia por digitalizar partidas que ya están en sus
+  // libros; el cobro es por registrar un sacramento nuevo.
+  const requierePago = !historico && !!precioRegistro && precioRegistro > 0;
 
   function guardar() {
     if (!formRef.current) return;
@@ -82,7 +98,7 @@ export function ActaForm({
       } else {
         window.open(`/api/actas/${resultado.actaId}/pdf`, "_blank");
       }
-      router.push(`/actas/${resultado.actaId}`);
+      router.push(`/actas/${resultado.actaId}${historico ? "?modo=historico" : ""}`);
     });
   }
 
@@ -160,15 +176,62 @@ export function ActaForm({
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             />
           )}
-          {libroSeleccionadoLleno ? (
+          {libroSeleccionadoLleno && !historico ? (
             <p className="mt-1 text-xs text-red-600">
               Este libro ya está lleno. Elige &quot;Abrir un libro nuevo&quot; para continuar.
             </p>
           ) : (
-            <p className="mt-1 text-xs text-slate-500">
-              Se asignará automáticamente la partida No. {siguientePartida} — Foja {foja}, posición{" "}
-              {posicion} de {partidasPorFoja}
-            </p>
+            !historico && (
+              <p className="mt-1 text-xs text-slate-500">
+                Se asignará automáticamente la partida No. {siguientePartida} — Foja {foja},
+                posición {posicion} de {partidasPorFoja}
+              </p>
+            )
+          )}
+
+          <label className="mt-3 flex items-start gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={historico}
+              onChange={(e) => {
+                setHistorico(e.target.checked);
+                if (!e.target.checked) setPartidaManual("");
+              }}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300"
+            />
+            <span>
+              Captura de libro histórico
+              <span className="block text-xs text-slate-500">
+                Para pasar al sistema partidas ya asentadas en los libros. Escribes tú el número
+                tal como aparece en el libro, y no se genera cobro.
+              </span>
+            </span>
+          </label>
+
+          {historico && (
+            <div className="mt-2">
+              <label
+                htmlFor="numeroActaManual"
+                className="block text-xs font-medium text-slate-600"
+              >
+                No. de partida en el libro <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="numeroActaManual"
+                name="numeroActaManual"
+                type="number"
+                min="1"
+                required
+                value={partidaManual}
+                onChange={(e) => setPartidaManual(e.target.value)}
+                className="mt-1 w-40 rounded-md border border-slate-300 px-3 py-2 text-sm"
+              />
+              {/^\d+$/.test(partidaManual) && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Foja {foja}, posición {posicion} de {partidasPorFoja}
+                </p>
+              )}
+            </div>
           )}
         </div>
         <Campo label="Fecha del sacramento" name="fecha" type="date" required />

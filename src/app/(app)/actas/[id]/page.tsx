@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSesion, puedeEscribir, puedeConsultarActas } from "@/lib/authz";
-import { TIPO_ACTA_LABEL } from "@/lib/tipos-acta";
+import { TIPO_ACTA_LABEL, TIPO_ACTA_RUTA } from "@/lib/tipos-acta";
 import { formatearFecha as fmt } from "@/lib/fecha";
 import { obtenerConfiguracion } from "@/lib/configuracion";
 import { AnularActaForm } from "./anular-form";
@@ -22,10 +22,13 @@ function Fila({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default async function ActaDetallePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ modo?: string }>;
 }) {
   const { id } = await params;
+  const { modo } = await searchParams;
   const sesion = await requireSesion();
   if (!puedeConsultarActas(sesion)) redirect("/dashboard");
 
@@ -65,6 +68,22 @@ export default async function ActaDetallePage({
           <p className="text-sm text-slate-500">{acta.iglesia.nombre}</p>
         </div>
         <div className="text-right">
+          {permisoEscritura && (
+            <div className="mb-2">
+              <Link
+                href={`/actas/nueva/${TIPO_ACTA_RUTA[acta.tipo]}?libro=${encodeURIComponent(
+                  acta.libro,
+                )}${modo === "historico" ? "&historico=1" : ""}`}
+                className="inline-block rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Registrar otra de {TIPO_ACTA_LABEL[acta.tipo].toLowerCase()}
+              </Link>
+              <p className="mt-1 text-xs text-slate-500">
+                Continúa en el Libro {acta.libro}
+                {modo === "historico" ? ", en captura histórica" : ""}
+              </p>
+            </div>
+          )}
           <ReimprimirButton actaId={acta.id} precioReimpresion={config.precioReimpresion} />
           {config.precioReimpresion != null && (
             <p className="mt-1 text-xs text-slate-500">

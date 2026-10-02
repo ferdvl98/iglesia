@@ -163,6 +163,13 @@ async function crearActaConUbicacion(opts: {
   observaciones: string | null;
   creadoPorId: string;
   metodoPago: MetodoPago | null;
+  /**
+   * Número de partida para captura retroactiva de libros históricos. Cuando
+   * viene, manda sobre la numeración automática y el acta no genera cobro: no
+   * se le cobra a la parroquia por digitalizar partidas que ya están en sus
+   * libros.
+   */
+  numeroActaManual: number | null;
   detalle: Pick<
     Prisma.ActaCreateInput,
     "bautizo" | "primeraComunion" | "confirmacion" | "matrimonio"
@@ -170,20 +177,32 @@ async function crearActaConUbicacion(opts: {
 }) {
   const config = await obtenerConfiguracion(opts.iglesiaId, opts.tipo);
 
-  const requierePago = !!config.precioRegistro && config.precioRegistro > 0;
+  const esHistorico = opts.numeroActaManual !== null;
+  const requierePago = !esHistorico && !!config.precioRegistro && config.precioRegistro > 0;
   if (requierePago && !opts.metodoPago) {
     throw new Error("Debes confirmar el cobro y el método de pago antes de registrar el acta.");
   }
 
-  for (let intento = 0; intento < MAX_INTENTOS_ASIGNACION; intento++) {
-    const ultima = await prisma.acta.aggregate({
-      where: { iglesiaId: opts.iglesiaId, tipo: opts.tipo, libro: opts.libro },
-      _max: { numeroActa: true },
-    });
-    const numeroActa = (ultima._max.numeroActa ?? 0) + 1;
-    if (numeroActa > partidasPorLibro(config.fojasPorLibro, config.partidasPorFoja)) {
+  const tope = partidasPorLibro(config.fojasPorLibro, config.partidasPorFoja);
+
+  // Con partida indicada a mano no se reintenta: un choque no es una carrera
+  // entre capturistas, es que esa partida ya está capturada, y hay que decirlo.
+  const intentosMaximos = esHistorico ? 1 : MAX_INTENTOS_ASIGNACION;
+
+  for (let intento = 0; intento < intentosMaximos; intento++) {
+    let numeroActa: number;
+    if (opts.numeroActaManual !== null) {
+      numeroActa = opts.numeroActaManual;
+    } else {
+      const ultima = await prisma.acta.aggregate({
+        where: { iglesiaId: opts.iglesiaId, tipo: opts.tipo, libro: opts.libro },
+        _max: { numeroActa: true },
+      });
+      numeroActa = (ultima._max.numeroActa ?? 0) + 1;
+    }
+    if (numeroActa > tope) {
       throw new Error(
-        `El libro ${opts.libro} ya alcanzó su límite de ${config.fojasPorLibro} fojas (${partidasPorLibro(config.fojasPorLibro, config.partidasPorFoja)} partidas). Abre un libro nuevo para continuar.`,
+        `El libro ${opts.libro} tiene ${config.fojasPorLibro} fojas, o sea ${tope} partidas, y la ${numeroActa} queda fuera. Revisa el número o abre un libro nuevo.`,
       );
     }
     const { foja, posicionEnFoja } = calcularUbicacion(numeroActa, config.partidasPorFoja);
@@ -232,6 +251,11 @@ async function crearActaConUbicacion(opts: {
       const esConflicto =
         e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002";
       if (!esConflicto) throw e;
+      if (esHistorico) {
+        throw new Error(
+          `La partida ${opts.numeroActaManual} del libro ${opts.libro} ya está registrada. Búscala en el listado antes de volver a capturarla.`,
+        );
+      }
       if (intento === MAX_INTENTOS_ASIGNACION - 1) {
         throw new Error("No se pudo asignar un número de partida disponible, intenta de nuevo.");
       }
@@ -271,6 +295,20 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
       ? (metodoPagoTexto as MetodoPago)
       : null;
 
+  // Captura retroactiva: el capturista escribe la partida tal como está en el
+  // libro viejo en vez de que el sistema la asigne.
+  const partidaTexto = formData.get("numeroActaManual");
+  let numeroActaManual: number | null = null;
+  if (typeof partidaTexto === "string" && partidaTexto.trim() !== "") {
+    if (!/^\d+$/.test(partidaTexto.trim())) {
+      return { error: "El número de partida debe ser un número entero." };
+    }
+    numeroActaManual = Number(partidaTexto.trim());
+    if (numeroActaManual < 1) {
+      return { error: "El número de partida debe ser mayor que cero." };
+    }
+  }
+
   const base = datosBase(formData);
   const { ministroId, ministroTexto } = await resolverMinistro(
     formData,
@@ -304,6 +342,7 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         observaciones: limpiar(datos.observaciones),
         creadoPorId: sesion.id,
         metodoPago,
+        numeroActaManual,
         detalle: {
           bautizo: {
             create: {
@@ -347,6 +386,7 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         observaciones: limpiar(datos.observaciones),
         creadoPorId: sesion.id,
         metodoPago,
+        numeroActaManual,
         detalle: {
           primeraComunion: {
             create: {
@@ -395,6 +435,7 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         observaciones: limpiar(datos.observaciones),
         creadoPorId: sesion.id,
         metodoPago,
+        numeroActaManual,
         detalle: {
           confirmacion: {
             create: {
@@ -452,6 +493,7 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         observaciones: limpiar(datos.observaciones),
         creadoPorId: sesion.id,
         metodoPago,
+        numeroActaManual,
         detalle: {
           matrimonio: {
             create: {
