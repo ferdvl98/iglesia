@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireSesion, puedeAdministrarUsuarios, filtroIglesia, filtroRoles } from "@/lib/authz";
 import { EstadoUsuarioToggle } from "./estado-toggle";
 import { RolSelect } from "./rol-select";
+import { RestablecerPassword } from "./restablecer-password";
+import { estadoLicencias } from "@/lib/licencias";
 
 export default async function UsuariosPage() {
   const sesion = await requireSesion();
@@ -19,6 +21,7 @@ export default async function UsuariosPage() {
     }),
     prisma.rol.findMany({ where: filtroRoles(sesion), orderBy: { nombre: "asc" } }),
   ]);
+  const licencias = await estadoLicencias();
 
   return (
     <div className="space-y-6">
@@ -26,13 +29,35 @@ export default async function UsuariosPage() {
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Usuarios</h1>
           <p className="text-sm text-slate-500">Administra quién puede registrar y consultar actas.</p>
+          {licencias.tope !== null && (
+            <p className="mt-1 text-sm text-slate-500">
+              <span className="font-medium text-slate-700">
+                {licencias.enUso} de {licencias.tope}
+              </span>{" "}
+              usuarios activos
+              {!licencias.hayCupo && (
+                <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
+                  Sin cupo
+                </span>
+              )}
+            </p>
+          )}
         </div>
-        <Link
-          href="/usuarios/nuevo"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Nuevo usuario
-        </Link>
+        {licencias.hayCupo ? (
+          <Link
+            href="/usuarios/nuevo"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Nuevo usuario
+          </Link>
+        ) : (
+          <span
+            title="Desactiva a un usuario o contrata más licencias"
+            className="cursor-not-allowed rounded-md bg-slate-200 px-4 py-2 text-sm font-medium text-slate-400"
+          >
+            Nuevo usuario
+          </span>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -71,7 +96,10 @@ export default async function UsuariosPage() {
                 </td>
                 <td className="px-4 py-2 text-right">
                   {usuario.id !== sesion.id && (
-                    <EstadoUsuarioToggle usuarioId={usuario.id} activo={usuario.activo} />
+                    <div className="flex flex-col items-end gap-2">
+                      <RestablecerPassword usuarioId={usuario.id} nombre={usuario.nombre} />
+                      <EstadoUsuarioToggle usuarioId={usuario.id} activo={usuario.activo} />
+                    </div>
                   )}
                 </td>
               </tr>

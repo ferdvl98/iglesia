@@ -1,11 +1,16 @@
 import { redirect } from "next/navigation";
 import { requireSesion, puedeAdministrarUsuarios, filtroRoles } from "@/lib/authz";
+import { estadoLicencias } from "@/lib/licencias";
 import { prisma } from "@/lib/prisma";
 import { UsuarioForm } from "./usuario-form";
 
 export default async function NuevoUsuarioPage() {
   const sesion = await requireSesion();
   if (!puedeAdministrarUsuarios(sesion)) redirect("/dashboard");
+
+  // Sin asientos libres no tiene sentido mostrar el formulario; la acción lo
+  // rechazaría al guardar.
+  if (!(await estadoLicencias()).hayCupo) redirect("/usuarios");
 
   const [iglesias, roles] = await Promise.all([
     sesion.esSuperAdmin
