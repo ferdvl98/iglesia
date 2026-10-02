@@ -1,5 +1,15 @@
+import { cache } from "react";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import type { Permiso } from "@prisma/client";
+
+/**
+ * Destino del usuario cuyo token ya no corresponde a una cuenta válida.
+ * El middleware deja pasar /login con este parámetro aunque la cookie siga
+ * presente; sin esa excepción se produciría un bucle de redirecciones.
+ */
+export const RUTA_SESION_INVALIDA = "/login?motivo=sesion";
 
 export type SesionActiva = {
   id: string;
@@ -14,23 +24,49 @@ export type SesionActiva = {
   email: string | null;
 };
 
-export async function requireSesion(): Promise<SesionActiva> {
+/**
+ * Lee la sesión y la revalida contra la base de datos.
+ *
+ * El JWT de NextAuth congela rol, permisos e iglesia tal como estaban al
+ * iniciar sesión y nunca se refresca. Sin esta lectura, desactivar a un
+ * usuario, quitarle permisos, cambiarlo de rol o moverlo de parroquia no
+ * surtiría efecto hasta que su token expirara. `cache` garantiza una sola
+ * consulta por petición aunque se llame desde el layout y la página.
+ */
+const cargarSesion = cache(async (): Promise<SesionActiva | null> => {
   const session = await auth();
-  if (!session?.user) {
-    throw new Error("No autenticado");
-  }
+  const id = session?.user?.id;
+  if (!id) return null;
+
+  const usuario = await prisma.usuario.findUnique({
+    where: { id },
+    include: { rol: true, iglesia: true },
+  });
+  if (!usuario || !usuario.activo) return null;
+
   return {
-    id: session.user.id,
-    esSuperAdmin: session.user.esSuperAdmin,
-    esAdministrador: session.user.esSuperAdmin || session.user.esAdministrador,
-    rolId: session.user.rolId,
-    rolNombre: session.user.rolNombre,
-    permisos: session.user.permisos,
-    iglesiaId: session.user.iglesiaId,
-    iglesiaNombre: session.user.iglesiaNombre,
-    nombre: session.user.name ?? null,
-    email: session.user.email ?? null,
+    id: usuario.id,
+    esSuperAdmin: usuario.esSuperAdmin,
+    esAdministrador: usuario.esSuperAdmin || (usuario.rol?.esAdministrador ?? false),
+    rolId: usuario.rolId,
+    rolNombre: usuario.rol?.nombre ?? null,
+    permisos: usuario.rol?.permisos ?? [],
+    iglesiaId: usuario.iglesiaId,
+    iglesiaNombre: usuario.iglesia?.nombre ?? null,
+    nombre: usuario.nombre,
+    email: usuario.email,
   };
+});
+
+/** Para rutas de API, que responden 401 en vez de redirigir. */
+export async function obtenerSesion(): Promise<SesionActiva | null> {
+  return cargarSesion();
+}
+
+export async function requireSesion(): Promise<SesionActiva> {
+  const sesion = await cargarSesion();
+  if (!sesion) redirect(RUTA_SESION_INVALIDA);
+  return sesion;
 }
 
 function tienePermiso(sesion: SesionActiva, permiso: Permiso) {
@@ -50,6 +86,11 @@ export function puedeConsultarActas(sesion: SesionActiva) {
 
 export function puedeUsarPuntoDeVenta(sesion: SesionActiva) {
   return tienePermiso(sesion, "PUNTO_DE_VENTA");
+}
+
+/** Reportes de ingresos del dashboard y sus descargas (PDF/Excel). */
+export function puedeVerIngresos(sesion: SesionActiva) {
+  return tienePermiso(sesion, "VER_INGRESOS");
 }
 
 export function puedeConfigurar(sesion: SesionActiva) {
@@ -79,6 +120,37 @@ export function puedeAdministrarUsuarios(sesion: SesionActiva) {
 
 export function puedeAdministrarRoles(sesion: SesionActiva) {
   return sesion.esSuperAdmin || sesion.esAdministrador;
+}
+
+/**
+ * Qué roles puede ver un usuario: los de su parroquia más las plantillas
+ * globales de la diócesis. El SUPERADMIN los ve todos.
+ */
+export function filtroRoles(sesion: SesionActiva) {
+  if (sesion.esSuperAdmin) return {};
+  return { OR: [{ iglesiaId: sesion.iglesiaId }, { iglesiaId: null }] };
+}
+
+/**
+ * Si puede *modificar* ese rol (editarlo, borrarlo o asignárselo a alguien).
+ * Las plantillas globales son de solo lectura fuera del SUPERADMIN: antes, el
+ * administrador de una parroquia podía editar el rol que usaba otra.
+ */
+export function puedeEditarRol(
+  sesion: SesionActiva,
+  rol: { iglesiaId: string | null },
+) {
+  if (sesion.esSuperAdmin) return true;
+  return rol.iglesiaId !== null && rol.iglesiaId === sesion.iglesiaId;
+}
+
+/** Si puede asignar ese rol a un usuario (incluye las plantillas globales). */
+export function puedeAsignarRol(
+  sesion: SesionActiva,
+  rol: { iglesiaId: string | null },
+) {
+  if (sesion.esSuperAdmin) return true;
+  return rol.iglesiaId === null || rol.iglesiaId === sesion.iglesiaId;
 }
 
 /** Devuelve el filtro de iglesia a aplicar en consultas Prisma según el rol. */

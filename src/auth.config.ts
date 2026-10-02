@@ -7,7 +7,10 @@ import type { NextAuthConfig } from "next-auth";
  */
 export const authConfig = {
   trustHost: true,
-  session: { strategy: "jwt" },
+  // 12 h: cubre una jornada completa sin interrupciones, pero una sesión
+  // olvidada en la computadora de la parroquia no sobrevive al día siguiente
+  // (el default de NextAuth son 30 días).
+  session: { strategy: "jwt", maxAge: 12 * 60 * 60 },
   pages: {
     signIn: "/login",
   },

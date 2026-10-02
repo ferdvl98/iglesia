@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 
+/** Tras 5 contraseñas erradas la cuenta queda bloqueada 10 minutos. */
+const MAX_INTENTOS_LOGIN = 5;
+const BLOQUEO_MINUTOS = 10;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -23,8 +27,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
         if (!usuario || !usuario.activo) return null;
 
+        // Cuenta bloqueada por intentos fallidos: ni siquiera se compara el
+        // hash, para no dar una señal de tiempo distinta.
+        if (usuario.bloqueadoHasta && usuario.bloqueadoHasta > new Date()) {
+          return null;
+        }
+
         const valido = await bcrypt.compare(password, usuario.passwordHash);
-        if (!valido) return null;
+
+        if (!valido) {
+          const intentos = usuario.intentosFallidos + 1;
+          await prisma.usuario.update({
+            where: { id: usuario.id },
+            data:
+              intentos >= MAX_INTENTOS_LOGIN
+                ? {
+                    intentosFallidos: 0,
+                    bloqueadoHasta: new Date(Date.now() + BLOQUEO_MINUTOS * 60_000),
+                  }
+                : { intentosFallidos: intentos },
+          });
+          return null;
+        }
+
+        if (usuario.intentosFallidos > 0 || usuario.bloqueadoHasta) {
+          await prisma.usuario.update({
+            where: { id: usuario.id },
+            data: { intentosFallidos: 0, bloqueadoHasta: null },
+          });
+        }
 
         return {
           id: usuario.id,
