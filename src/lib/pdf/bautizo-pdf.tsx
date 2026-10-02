@@ -72,7 +72,7 @@ const MESES = [
 function partesFecha(fecha: Date | null) {
   if (!fecha) return { dia: null, mes: null, anio: null };
   const d = new Date(fecha);
-  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() % 100 };
+  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() };
 }
 
 function v(valor: string | number | null | undefined) {
@@ -101,9 +101,9 @@ export function BautizoActaPdf({ acta }: { acta: ActaBautizo }) {
           <View style={styles.columnaDerecha}>
             <Text>
               En la Parroquia de <Dato valor={acta.lugar || acta.iglesia.nombre} />, el día{" "}
-              <Dato valor={dia} /> de <Dato valor={mes} /> de 20<Dato valor={anio} />, yo, el{" "}
+              <Dato valor={dia} /> de <Dato valor={mes} /> de <Dato valor={anio} />, yo, el{" "}
               <Dato valor={acta.ministro} />, bauticé solemnemente a un {niñoNiña} que nació el día{" "}
-              <Dato valor={nacimiento.dia} /> de <Dato valor={nacimiento.mes} /> de 20
+              <Dato valor={nacimiento.dia} /> de <Dato valor={nacimiento.mes} /> de{" "}
               <Dato valor={nacimiento.anio} /> en <Dato valor={b.lugarNacimiento} />, y con domicilio en:{" "}
               <Dato valor={b.domicilio} />, a quien puse por nombre <Dato valor={b.nombreCompleto} />,{" "}
               {hijoHija} del Sr. <Dato valor={b.nombrePadre} /> y de la Sra. <Dato valor={b.nombreMadre} />;

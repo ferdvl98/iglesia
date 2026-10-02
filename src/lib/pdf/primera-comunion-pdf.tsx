@@ -107,7 +107,7 @@ const MESES = [
 function partesFecha(fecha: Date | null) {
   if (!fecha) return { dia: null, mes: null, anio: null };
   const d = new Date(fecha);
-  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() % 100 };
+  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() };
 }
 
 function v(valor: string | number | null | undefined) {
@@ -151,10 +151,10 @@ export function PrimeraComunionActaPdf({ acta }: { acta: ActaPrimeraComunion }) 
 
           <View style={styles.columnaDerecha}>
             <Text>
-              Recibió el Sacramento de la Eucaristía, el <Dato valor={dia} /> de <Dato valor={mes} /> de 20
+              Recibió el Sacramento de la Eucaristía, el <Dato valor={dia} /> de <Dato valor={mes} /> de{" "}
               <Dato valor={anio} />, habiendo sido {bautizadoA} en la parroquia de{" "}
               <Dato valor={pc.parroquiaBautismo} />, el <Dato valor={bautismo.dia} /> de{" "}
-              <Dato valor={bautismo.mes} /> de 20<Dato valor={bautismo.anio} />.
+              <Dato valor={bautismo.mes} /> de <Dato valor={bautismo.anio} />.
             </Text>
           </View>
         </View>

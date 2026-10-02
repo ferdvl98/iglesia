@@ -101,7 +101,7 @@ const MESES = [
 function partesFecha(fecha: Date | null) {
   if (!fecha) return { dia: null, mes: null, anio: null };
   const d = new Date(fecha);
-  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() % 100 };
+  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()], anio: d.getUTCFullYear() };
 }
 
 function v(valor: string | number | null | undefined) {
@@ -131,7 +131,7 @@ export function ConfirmacionActaPdf({ acta }: { acta: ActaConfirmacion }) {
           <View style={styles.columnaDerecha}>
             <Text style={styles.parrafo}>
               En la Parroquia de <Dato valor={acta.lugar || acta.iglesia.nombre} />, el día{" "}
-              <Dato valor={dia} /> de <Dato valor={mes} /> de 20<Dato valor={anio} />, recibió el
+              <Dato valor={dia} /> de <Dato valor={mes} /> de <Dato valor={anio} />, recibió el
               Sacramento de la Confirmación por manos del Excmo. Sr. Obispo: <Dato valor={c.obispoMinistro} />.
             </Text>
 
@@ -142,9 +142,9 @@ export function ConfirmacionActaPdf({ acta }: { acta: ActaConfirmacion }) {
 
             <Text>
               Nació en <Dato valor={c.lugarNacimiento} /> el día <Dato valor={nacimiento.dia} /> de{" "}
-              <Dato valor={nacimiento.mes} /> de 20<Dato valor={nacimiento.anio} />. Fue {bautizadoA} en la
+              <Dato valor={nacimiento.mes} /> de <Dato valor={nacimiento.anio} />. Fue {bautizadoA} en la
               Parroquia de: <Dato valor={c.parroquiaBautismo} /> el día <Dato valor={bautismo.dia} /> de{" "}
-              <Dato valor={bautismo.mes} /> de 20<Dato valor={bautismo.anio} />, como consta en el libro de
+              <Dato valor={bautismo.mes} /> de <Dato valor={bautismo.anio} />, como consta en el libro de
               Bautismos No. <Dato valor={c.libroBautismo} /> Foja <Dato valor={c.fojaBautismo} /> Acta{" "}
               <Dato valor={c.actaBautismo} />. {hijoHija.charAt(0).toUpperCase() + hijoHija.slice(1)} del Sr.{" "}
               <Dato valor={c.nombrePadre} /> y de la Sra. <Dato valor={c.nombreMadre} />. Padrinos:{" "}
