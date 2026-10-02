@@ -10,6 +10,7 @@ import {
 } from "@/lib/authz";
 import { cerrarSesion } from "./actions";
 import { MobileNav } from "./mobile-nav";
+import { Footer } from "@/components/footer";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const sesion = await requireSesion();
@@ -79,6 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </form>
         </header>
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
+        <Footer />
       </div>
     </div>
   );
