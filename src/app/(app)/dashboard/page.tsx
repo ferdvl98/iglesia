@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireSesion, filtroIglesia, puedeVerIngresos } from "@/lib/authz";
+import { requireSesion, filtroIglesia, puedeVerIngresos, puedeUsarPuntoDeVenta } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { TIPO_ACTA_LABEL, TIPOS_ACTA } from "@/lib/tipos-acta";
 import {
@@ -21,6 +21,8 @@ export default async function DashboardPage({
   const where = filtroIglesia(sesion);
   const params = await searchParams;
   const verIngresos = puedeVerIngresos(sesion);
+  // Sin el módulo de punto de venta no hay ventas que resumir.
+  const verVentas = verIngresos && puedeUsarPuntoDeVenta(sesion);
 
   const conteos = await prisma.acta.groupBy({
     by: ["tipo"],
@@ -35,13 +37,13 @@ export default async function DashboardPage({
   const { desde, hasta } = resolverRangoMeses(params);
   // Sin el permiso ni siquiera se consultan los importes.
   const reimpresionesPorTipo = await calcularReimpresionesPorTipo(where, desde, hasta);
-  const [ingresosPorMes, ventasPorMes, productosMasVendidos] = verIngresos
+  const ingresosPorMes = verIngresos ? await calcularIngresosPorMes(where, desde, hasta) : [];
+  const [ventasPorMes, productosMasVendidos] = verVentas
     ? await Promise.all([
-        calcularIngresosPorMes(where, desde, hasta),
         calcularVentasPorMes(where, desde, hasta),
         calcularProductosMasVendidos(where, desde, hasta),
       ])
-    : [[], [], []];
+    : [[], []];
 
   const totalGanadoPeriodo = ingresosPorMes.reduce((acc, m) => acc + m.total, 0);
   const totalReimpresiones = TIPOS_ACTA.reduce((acc, t) => acc + reimpresionesPorTipo[t], 0);
@@ -140,7 +142,9 @@ export default async function DashboardPage({
           <div className="mt-4">
             <IngresosTabla meses={ingresosPorMes} />
           </div>
-          <VentasResumen meses={ventasPorMes} productos={productosMasVendidos} />
+          {verVentas && (
+            <VentasResumen meses={ventasPorMes} productos={productosMasVendidos} />
+          )}
         </div>
       )}
     </div>

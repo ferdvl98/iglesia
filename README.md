@@ -109,27 +109,27 @@ solo `git push` a `main` despliega todas las instancias, y cada build corre
    las credenciales. A partir de ahí el cliente configura sus parroquias, sus
    sacerdotes y sus usuarios.
 
-### Licencias
+### Licencias y módulos
 
-`LICENCIAS_USUARIOS` limita los **usuarios activos**. Se comprueba al crear y
-al reactivar usuarios, y desactivar a alguien libera su asiento. Vive en las
-variables de Vercel y no en la aplicación justamente para que el administrador
-del cliente no pueda ampliárselo. Sin la variable no hay tope.
+El precio es **por parroquia**, no por usuario: cada cliente es una instancia y
+el costo de operarla no cambia con cuánta gente entre. Cobrar por asiento
+empujaría a la parroquia a compartir una sola cuenta entre el párroco y la
+secretaria, y eso anularía justo lo que hace confiable al sistema —quién
+registró, quién anuló y quién imprimió cada acta.
 
-## Scripts
+| Variable | Qué hace |
+|---|---|
+| `LICENCIAS_USUARIOS` | Tope de usuarios **activos**. Es una baranda, no un precio: evita que una diócesis meta varias parroquias en una instancia pagada como una. Sin la variable no hay tope. |
+| `MODULO_PUNTO_DE_VENTA` | Enciende el punto de venta y el catálogo. **Viene apagado**: una instalación nueva nace sin el módulo. |
 
-- `npm run dev` — servidor de desarrollo.
-- `npm run build` / `npm run start` — build y ejecución de producción.
-- `npm run db:migrate` — aplica migraciones de Prisma.
-- `npm run db:seed` — carga datos de ejemplo.
-- `npm run db:studio` — abre Prisma Studio para explorar la base de datos.
+Ambas viven en las variables de Vercel y no en la aplicación, para que el
+administrador del cliente no pueda ampliarse el cupo ni encenderse un módulo
+que no contrató. **Cambiarlas exige volver a desplegar ese proyecto.**
 
-## Estructura principal
+El tope de usuarios se comprueba al crear y al reactivar; desactivar a alguien
+libera su asiento.
 
-- `prisma/schema.prisma` — modelo de datos (iglesias, usuarios, actas y sus
-  detalles por sacramento).
-- `src/app/(app)/actas` — registro, consulta y detalle de actas.
-- `src/app/(app)/iglesias` — administración de iglesias (SUPERADMIN).
-- `src/app/(app)/usuarios` — administración de usuarios.
-- `src/app/api/actas/[id]/pdf` — generación del PDF reimprimible del acta.
-- `src/lib/pdf/acta-pdf.tsx` — plantilla del documento PDF.
+El módulo de punto de venta se apaga en un solo punto —`puedeUsarPuntoDeVenta`
+y `puedeAdministrarCatalogo` en `src/lib/authz.ts`—, por donde pasan todas sus
+pantallas y acciones. Con el módulo apagado desaparecen también su enlace del
+menú, el resumen de ventas del panel y sus permisos del formulario de roles.

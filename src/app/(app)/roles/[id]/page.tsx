@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSesion, puedeAdministrarRoles, puedeEditarRol } from "@/lib/authz";
 import { actualizarRol } from "../actions";
 import { RolForm } from "../rol-form";
+import { moduloPuntoDeVentaActivo } from "@/lib/modulos";
 
 export default async function EditarRolPage({ params }: { params: Promise<{ id: string }> }) {
   const sesion = await requireSesion();
@@ -20,6 +21,7 @@ export default async function EditarRolPage({ params }: { params: Promise<{ id: 
     <div className="max-w-xl space-y-6">
       <h1 className="text-lg font-semibold text-slate-900">Editar rol</h1>
       <RolForm
+        moduloPuntoDeVenta={moduloPuntoDeVentaActivo()}
         action={actualizarRol}
         rolId={rol.id}
         nombreInicial={rol.nombre}

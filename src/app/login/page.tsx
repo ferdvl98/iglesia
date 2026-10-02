@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { LoginForm } from "./login-form";
 import { Footer } from "@/components/footer";
 import { Logo } from "@/components/logo";
@@ -8,6 +10,13 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string; error?: string; motivo?: string }>;
 }) {
   const params = await searchParams;
+
+  // Instalación recién desplegada: no tiene sentido pedir credenciales que
+  // todavía no existen. Así, abrir el dominio del cliente lleva directo a la
+  // configuración inicial. Sin riesgo de bucle: esa página redirige aquí en
+  // cuanto hay un usuario, y son condiciones mutuamente excluyentes.
+  if ((await prisma.usuario.count()) === 0) redirect("/configuracion-inicial");
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-100">
       <div className="flex flex-1 items-center justify-center px-4">

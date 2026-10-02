@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import {
   requireSesion,
   puedeAdministrarMinistros,
@@ -9,30 +7,54 @@ import {
   puedeAdministrarRoles,
   puedeConfigurar,
   puedeAdministrarCatalogo,
+  puedeUsarPuntoDeVenta,
 } from "@/lib/authz";
 import { cerrarSesion } from "./actions";
 import { MobileNav } from "./mobile-nav";
 import { Footer } from "@/components/footer";
 import { Logo } from "@/components/logo";
+import { CambiarPasswordForm } from "./cambiar-password/form";
 
 const RUTA_CAMBIO_PASSWORD = "/cambiar-password";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const sesion = await requireSesion();
 
-  // Con una contraseña temporal no se entra a ninguna otra pantalla. La ruta
-  // llega por cabecera desde el middleware; sin ella redirigiríamos en bucle
-  // sobre la propia pantalla de cambio.
-  const ruta = (await headers()).get("x-ruta") ?? "";
-  if (sesion.debeCambiarPassword && !ruta.startsWith(RUTA_CAMBIO_PASSWORD)) {
-    redirect(RUTA_CAMBIO_PASSWORD);
+  // Con una contraseña temporal no se muestra la aplicación, sino el formulario
+  // de cambio en su lugar. Se renderiza, no se redirige: una redirección desde
+  // el layout la dispara también cada precarga de los enlaces del menú, y el
+  // router entra en un bucle que deja la pantalla en blanco.
+  if (sesion.debeCambiarPassword) {
+    return (
+      <div className="flex min-h-screen flex-col bg-slate-100">
+        <div className="flex flex-1 items-center justify-center px-4 py-10">
+          <div className="w-full max-w-sm rounded-xl bg-white p-8 shadow-sm">
+            <div className="flex flex-col items-center text-center">
+              <Logo size={52} />
+              <h1 className="mt-4 text-xl font-semibold text-slate-900">Elige tu contraseña</h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Entraste con una contraseña temporal. Elige una propia para continuar.
+              </p>
+            </div>
+            <div className="mt-6">
+              <CambiarPasswordForm obligatorio />
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
   }
 
   const links = [
     { href: "/dashboard", label: "Inicio" },
     { href: "/actas", label: "Actas" },
-    { href: "/punto-de-venta", label: "Punto de venta" },
   ];
+  // Estaba en la lista fija, así que aparecía incluso sin el permiso (y, ahora,
+  // sin el módulo contratado); la página redirigía al entrar.
+  if (puedeUsarPuntoDeVenta(sesion)) {
+    links.push({ href: "/punto-de-venta", label: "Punto de venta" });
+  }
   if (puedeAdministrarMinistros(sesion)) {
     links.push({ href: "/ministros", label: "Sacerdotes" });
   }

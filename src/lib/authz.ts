@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { moduloPuntoDeVentaActivo } from "@/lib/modulos";
 import type { Permiso } from "@prisma/client";
 
 /**
@@ -86,7 +87,14 @@ export function puedeConsultarActas(sesion: SesionActiva) {
   return tienePermiso(sesion, "CONSULTAR_ACTAS");
 }
 
+/**
+ * Punto de venta y catálogo son un módulo aparte. Si el cliente no lo
+ * contrató, ningún permiso lo abre —ni siquiera para el SUPERADMIN—, y como
+ * todas las pantallas y acciones de ese módulo pasan por estas dos funciones,
+ * apagarlo aquí lo apaga entero.
+ */
 export function puedeUsarPuntoDeVenta(sesion: SesionActiva) {
+  if (!moduloPuntoDeVentaActivo()) return false;
   return tienePermiso(sesion, "PUNTO_DE_VENTA");
 }
 
@@ -101,6 +109,7 @@ export function puedeConfigurar(sesion: SesionActiva) {
 
 /** El catálogo de productos/servicios (incl. ajuste y transferencia de inventario). */
 export function puedeAdministrarCatalogo(sesion: SesionActiva) {
+  if (!moduloPuntoDeVentaActivo()) return false;
   return tienePermiso(sesion, "ADMINISTRAR_CATALOGO");
 }
 

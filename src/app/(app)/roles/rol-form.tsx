@@ -14,17 +14,19 @@ export const PERMISOS_LABEL: Record<Permiso, string> = {
   ADMINISTRAR_MINISTROS: "Administrar el catálogo de sacerdotes/ministros",
 };
 
-const TODOS_LOS_PERMISOS = Object.keys(PERMISOS_LABEL) as Permiso[];
+const PERMISOS_PUNTO_DE_VENTA: Permiso[] = ["PUNTO_DE_VENTA", "ADMINISTRAR_CATALOGO"];
 
 type EstadoFormulario = { error: string } | null;
 
 export function RolForm({
   action,
+  moduloPuntoDeVenta,
   rolId,
   permisosIniciales,
   nombreInicial,
   textoBoton,
 }: {
+  moduloPuntoDeVenta: boolean;
   action: (prevState: EstadoFormulario, formData: FormData) => Promise<EstadoFormulario>;
   rolId?: string;
   permisosIniciales?: Permiso[];
@@ -42,7 +44,9 @@ export function RolForm({
       <div>
         <p className="mb-2 text-xs font-medium text-slate-600">Permisos</p>
         <div className="space-y-2">
-          {TODOS_LOS_PERMISOS.map((permiso) => (
+          {(Object.keys(PERMISOS_LABEL) as Permiso[])
+            .filter((p) => moduloPuntoDeVenta || !PERMISOS_PUNTO_DE_VENTA.includes(p))
+            .map((permiso) => (
             <label key={permiso} className="flex items-center gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"

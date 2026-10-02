@@ -29,12 +29,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", nextUrl.origin));
   }
 
-  // El layout de la app necesita saber en qué ruta está para no redirigir en
-  // bucle a quien ya está en la pantalla de cambio de contraseña. Un Server
-  // Component no puede leer la ruta por sí mismo, así que se la pasamos aquí.
-  const cabeceras = new Headers(req.headers);
-  cabeceras.set("x-ruta", nextUrl.pathname);
-  return NextResponse.next({ request: { headers: cabeceras } });
+  return NextResponse.next();
 });
 
 export const config = {

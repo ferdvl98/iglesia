@@ -47,3 +47,7 @@ next-env.d.ts
 
 # log del servidor de desarrollo
 .next-dev.log
+
+# utilidades locales de un solo uso
+_*.ts
+_*.json
