@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { estadoLicencias, MENSAJE_SIN_CUPO } from "@/lib/licencias";
 import { requireSesion, puedeAdministrarUsuarios, puedeAsignarRol } from "@/lib/authz";
 
 export type EstadoFormulario = { error: string } | null;
@@ -47,6 +48,8 @@ export async function crearUsuario(
   const existente = await prisma.usuario.findUnique({ where: { email } });
   if (existente) return { error: "Ya existe un usuario con ese correo." };
 
+  if (!(await estadoLicencias()).hayCupo) return { error: MENSAJE_SIN_CUPO };
+
   const passwordHash = await bcrypt.hash(password, 10);
 
   await prisma.usuario.create({
@@ -57,6 +60,8 @@ export async function crearUsuario(
       esSuperAdmin,
       rolId: esSuperAdmin ? null : rolId,
       iglesiaId,
+      // La contraseña del alta es temporal: el usuario elige la suya al entrar.
+      debeCambiarPassword: true,
     },
   });
 
@@ -72,6 +77,12 @@ export async function cambiarEstadoUsuario(usuarioId: string, activo: boolean) {
   if (!usuario) throw new Error("Usuario no encontrado.");
   if (!sesion.esSuperAdmin && usuario.iglesiaId !== sesion.iglesiaId) {
     throw new Error("No tienes acceso a este usuario.");
+  }
+
+  // Reactivar vuelve a ocupar un asiento; sin esta comprobación se evadiría el
+  // tope desactivando, creando y reactivando.
+  if (activo && !usuario.activo && !(await estadoLicencias()).hayCupo) {
+    throw new Error(MENSAJE_SIN_CUPO);
   }
 
   await prisma.usuario.update({ where: { id: usuarioId }, data: { activo } });
@@ -96,5 +107,41 @@ export async function cambiarRolUsuario(usuarioId: string, rolId: string) {
   }
 
   await prisma.usuario.update({ where: { id: usuarioId }, data: { rolId } });
+  revalidatePath("/usuarios");
+}
+
+/**
+ * Restablece la contraseña de un usuario a una temporal que el administrador
+ * le entrega. El usuario tendrá que cambiarla al entrar, y el restablecimiento
+ * levanta cualquier bloqueo por intentos fallidos.
+ */
+export async function restablecerPassword(usuarioId: string, passwordTemporal: string) {
+  const sesion = await requireSesion();
+  if (!puedeAdministrarUsuarios(sesion)) throw new Error("No tienes permiso.");
+
+  if (!passwordTemporal || passwordTemporal.length < 8) {
+    throw new Error("La contraseña temporal debe tener al menos 8 caracteres.");
+  }
+
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario) throw new Error("Usuario no encontrado.");
+  if (!sesion.esSuperAdmin && usuario.iglesiaId !== sesion.iglesiaId) {
+    throw new Error("No tienes acceso a este usuario.");
+  }
+  // Un SUPERADMIN solo puede ser restablecido por otro SUPERADMIN.
+  if (usuario.esSuperAdmin && !sesion.esSuperAdmin) {
+    throw new Error("No puedes restablecer la contraseña de un SUPERADMIN.");
+  }
+
+  await prisma.usuario.update({
+    where: { id: usuarioId },
+    data: {
+      passwordHash: await bcrypt.hash(passwordTemporal, 10),
+      debeCambiarPassword: true,
+      intentosFallidos: 0,
+      bloqueadoHasta: null,
+    },
+  });
+
   revalidatePath("/usuarios");
 }

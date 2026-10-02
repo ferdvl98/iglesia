@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   requireSesion,
   puedeAdministrarMinistros,
@@ -13,8 +15,18 @@ import { MobileNav } from "./mobile-nav";
 import { Footer } from "@/components/footer";
 import { Logo } from "@/components/logo";
 
+const RUTA_CAMBIO_PASSWORD = "/cambiar-password";
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const sesion = await requireSesion();
+
+  // Con una contraseña temporal no se entra a ninguna otra pantalla. La ruta
+  // llega por cabecera desde el middleware; sin ella redirigiríamos en bucle
+  // sobre la propia pantalla de cambio.
+  const ruta = (await headers()).get("x-ruta") ?? "";
+  if (sesion.debeCambiarPassword && !ruta.startsWith(RUTA_CAMBIO_PASSWORD)) {
+    redirect(RUTA_CAMBIO_PASSWORD);
+  }
 
   const links = [
     { href: "/dashboard", label: "Inicio" },
@@ -74,14 +86,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <span>{sesion.esSuperAdmin ? "SUPERADMIN" : sesion.rolNombre}</span>
             </div>
           </div>
-          <form action={cerrarSesion} className="shrink-0">
-            <button
-              type="submit"
+          <div className="flex shrink-0 items-center gap-4">
+            <Link
+              href={RUTA_CAMBIO_PASSWORD}
               className="text-sm font-medium text-slate-500 hover:text-slate-900"
             >
-              Cerrar sesión
-            </button>
-          </form>
+              Contraseña
+            </Link>
+            <form action={cerrarSesion}>
+              <button
+                type="submit"
+                className="text-sm font-medium text-slate-500 hover:text-slate-900"
+              >
+                Cerrar sesión
+              </button>
+            </form>
+          </div>
         </header>
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
         <Footer />

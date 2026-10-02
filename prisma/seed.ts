@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const iglesia = await prisma.iglesia.upsert({
+  await prisma.iglesia.upsert({
     where: { id: "iglesia-demo" },
     update: {},
     create: {
@@ -16,7 +16,7 @@ async function main() {
     },
   });
 
-  const rolAdministrador = await prisma.rol.upsert({
+  await prisma.rol.upsert({
     where: { id: "rol-administrador" },
     update: {},
     create: {
@@ -34,34 +34,39 @@ async function main() {
     },
   });
 
-  const passwordSuperadmin = await bcrypt.hash("Superadmin123!", 10);
-  await prisma.usuario.upsert({
-    where: { email: "superadmin@actas.local" },
-    update: {},
-    create: {
-      nombre: "Administrador General",
-      email: "superadmin@actas.local",
-      passwordHash: passwordSuperadmin,
-      esSuperAdmin: true,
-    },
-  });
+  // Las cuentas ya no se crean con una contraseña escrita aquí: este archivo
+  // vive en el repositorio, así que cualquier contraseña puesta en el código
+  // es pública. El primer SUPERADMIN se crea desde /configuracion-inicial, que
+  // solo está disponible mientras el sistema no tiene ningún usuario.
+  //
+  // Para un entorno de desarrollo se pueden pasar por variable de entorno:
+  //   SEED_SUPERADMIN_EMAIL=... SEED_SUPERADMIN_PASSWORD=... npm run db:seed
+  const emailSeed = process.env.SEED_SUPERADMIN_EMAIL?.trim().toLowerCase();
+  const passwordSeed = process.env.SEED_SUPERADMIN_PASSWORD;
 
-  const passwordAdmin = await bcrypt.hash("Admin123!", 10);
-  await prisma.usuario.upsert({
-    where: { email: "admin@parroquia-demo.local" },
-    update: {},
-    create: {
-      nombre: "Administrador Parroquia",
-      email: "admin@parroquia-demo.local",
-      passwordHash: passwordAdmin,
-      rolId: rolAdministrador.id,
-      iglesiaId: iglesia.id,
-    },
-  });
+  if (emailSeed && passwordSeed) {
+    if (passwordSeed.length < 8) {
+      throw new Error("SEED_SUPERADMIN_PASSWORD debe tener al menos 8 caracteres.");
+    }
+    await prisma.usuario.upsert({
+      where: { email: emailSeed },
+      update: {},
+      create: {
+        nombre: "Administrador General",
+        email: emailSeed,
+        passwordHash: await bcrypt.hash(passwordSeed, 10),
+        esSuperAdmin: true,
+      },
+    });
+    console.log(`SUPERADMIN creado: ${emailSeed}`);
+  } else {
+    console.log(
+      "Sin SEED_SUPERADMIN_EMAIL/PASSWORD: no se creó ningún usuario.\n" +
+        "Abre /configuracion-inicial para crear el administrador general.",
+    );
+  }
 
   console.log("Seed completado.");
-  console.log("SUPERADMIN -> superadmin@actas.local / Superadmin123!");
-  console.log("ADMIN_IGLESIA -> admin@parroquia-demo.local / Admin123!");
 }
 
 main()

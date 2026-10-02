@@ -22,6 +22,7 @@ export type SesionActiva = {
   iglesiaNombre: string | null;
   nombre: string | null;
   email: string | null;
+  debeCambiarPassword: boolean;
 };
 
 /**
@@ -55,6 +56,7 @@ const cargarSesion = cache(async (): Promise<SesionActiva | null> => {
     iglesiaNombre: usuario.iglesia?.nombre ?? null,
     nombre: usuario.nombre,
     email: usuario.email,
+    debeCambiarPassword: usuario.debeCambiarPassword,
   };
 });
 

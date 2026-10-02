@@ -4,7 +4,7 @@ import { authConfig } from "@/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/configuracion-inicial"];
 
 export default auth((req) => {
   const { nextUrl } = req;
@@ -29,7 +29,12 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", nextUrl.origin));
   }
 
-  return NextResponse.next();
+  // El layout de la app necesita saber en qué ruta está para no redirigir en
+  // bucle a quien ya está en la pantalla de cambio de contraseña. Un Server
+  // Component no puede leer la ruta por sí mismo, así que se la pasamos aquí.
+  const cabeceras = new Headers(req.headers);
+  cabeceras.set("x-ruta", nextUrl.pathname);
+  return NextResponse.next({ request: { headers: cabeceras } });
 });
 
 export const config = {
