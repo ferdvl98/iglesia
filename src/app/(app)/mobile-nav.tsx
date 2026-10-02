@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Logo } from "@/components/logo";
 
 type NavLink = { href: string; label: string };
 
@@ -47,9 +48,12 @@ export function MobileNav({
           />
           <aside className="relative z-10 flex h-full w-64 flex-col bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Control de Actas</p>
-                <p className="mt-0.5 truncate text-xs text-slate-500">{iglesiaNombre}</p>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Logo size={24} className="shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">Control de Actas</p>
+                  <p className="mt-0.5 truncate text-xs text-slate-500">{iglesiaNombre}</p>
+                </div>
               </div>
               <button
                 type="button"

@@ -11,6 +11,7 @@ import {
 import { cerrarSesion } from "./actions";
 import { MobileNav } from "./mobile-nav";
 import { Footer } from "@/components/footer";
+import { Logo } from "@/components/logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const sesion = await requireSesion();
@@ -44,9 +45,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen bg-slate-50">
       <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white md:block">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <p className="text-sm font-semibold text-slate-900">Control de Actas</p>
-          <p className="mt-0.5 truncate text-xs text-slate-500">{iglesiaNombre}</p>
+        <div className="flex items-center gap-2.5 border-b border-slate-200 px-5 py-4">
+          <Logo size={26} className="shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-900">Control de Actas</p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">{iglesiaNombre}</p>
+          </div>
         </div>
         <nav className="flex flex-col gap-1 p-3">
           {links.map((link) => (
