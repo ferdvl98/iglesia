@@ -42,6 +42,10 @@ export default async function ActaDetallePage({
       matrimonio: true,
       creadoPor: true,
       anuladoPor: true,
+      correcciones: {
+        orderBy: { createdAt: "desc" },
+        include: { corregidoPor: { select: { nombre: true } } },
+      },
       impresiones: {
         orderBy: { createdAt: "desc" },
         take: 10,
@@ -78,6 +82,14 @@ export default async function ActaDetallePage({
               >
                 Registrar otra de {TIPO_ACTA_LABEL[acta.tipo].toLowerCase()}
               </Link>
+              {!acta.anulada && (
+                <Link
+                  href={`/actas/${acta.id}/editar`}
+                  className="ml-2 inline-block rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Corregir
+                </Link>
+              )}
               <p className="mt-1 text-xs text-slate-500">
                 Continúa en el Libro {acta.libro}
                 {modo === "historico" ? ", en captura histórica" : ""}
@@ -124,6 +136,36 @@ export default async function ActaDetallePage({
         {acta.observaciones && (
           <div className="mt-4">
             <Fila label="Observaciones" value={acta.observaciones} />
+          </div>
+        )}
+
+        {acta.correcciones.length > 0 && (
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Correcciones
+            </p>
+            <ul className="mt-2 space-y-3 text-sm">
+              {acta.correcciones.map((c) => (
+                <li key={c.id}>
+                  <p className="text-slate-700">
+                    {fmt(c.createdAt)}
+                    {c.corregidoPor ? ` — ${c.corregidoPor.nombre}` : ""}
+                    {c.motivo ? `: ${c.motivo}` : ""}
+                  </p>
+                  <ul className="mt-0.5 space-y-0.5 text-[13px] text-slate-500">
+                    {Object.entries(
+                      c.cambios as Record<string, { antes: string | null; despues: string | null }>,
+                    ).map(([campo, v]) => (
+                      <li key={campo}>
+                        <span className="font-medium text-slate-600">{campo}</span>:{" "}
+                        <span className="line-through">{v.antes ?? "(vacío)"}</span>{" "}
+                        → {v.despues ?? "(vacío)"}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

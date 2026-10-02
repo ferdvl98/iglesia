@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import type { TipoActa as TipoActaPrisma, MetodoPago, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +16,14 @@ import { esTipoActaValido } from "@/lib/tipos-acta";
 import { calcularUbicacion, libroLleno, partidasPorLibro } from "@/lib/libro";
 import { obtenerConfiguracion } from "@/lib/configuracion";
 import { textoBusquedaDeDetalle } from "@/lib/busqueda";
+import {
+  RELACION_POR_TIPO,
+  esquemaDe,
+  camposDelSacramento,
+  convertirCampo,
+  comoTexto,
+  type ValorCampo,
+} from "@/lib/campos-acta";
 
 export type EstadoFormulario = { error: string } | null;
 export type ResultadoCrearActa = { error: string } | { ok: true; actaId: string };
@@ -683,4 +692,131 @@ export async function registrarPagoReimpresion(
   }
 
   return null;
+}
+
+/**
+ * Corrige los datos de un acta ya registrada.
+ *
+ * Una errata de captura no se cobra: el libro físico está bien y el sistema
+ * mal, así que esto arregla la copia, no el acta. Pero queda constancia de
+ * qué decía antes, porque en un archivo sacramental "¿qué decía esta partida
+ * antes de que la tocaran?" es una pregunta legítima.
+ *
+ * Nunca toca libro, partida, foja ni posición: eso es la ubicación del acta en
+ * el libro, no un dato corregible.
+ */
+export async function corregirActa(
+  _prevState: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const sesion = await requireSesion();
+  if (!puedeEscribir(sesion)) return { error: "No tienes permiso para corregir actas." };
+
+  const actaId = formData.get("actaId");
+  if (typeof actaId !== "string") return { error: "Acta inválida." };
+
+  const acta = await prisma.acta.findUnique({
+    where: { id: actaId },
+    include: { bautizo: true, primeraComunion: true, confirmacion: true, matrimonio: true },
+  });
+  if (!acta) return { error: "Acta no encontrada." };
+  if (!sesion.esSuperAdmin && acta.iglesiaId !== sesion.iglesiaId) {
+    return { error: "No tienes acceso a esta acta." };
+  }
+  if (acta.anulada) return { error: "No se puede corregir un acta anulada." };
+
+  const relacion = RELACION_POR_TIPO[acta.tipo];
+  const detalleActual = acta[relacion];
+  if (!detalleActual) {
+    return { error: "Esta acta no tiene los datos del sacramento y no se puede corregir." };
+  }
+
+  // El libro no se corrige: se conserva el que ya tiene para que el esquema
+  // valide sin pedírselo al formulario.
+  let datos: Record<string, string | undefined>;
+  try {
+    datos = esquemaDe(acta.tipo).parse({
+      ...datosBase(formData),
+      libro: acta.libro,
+      ...Object.fromEntries(
+        camposDelSacramento(acta.tipo).map((c) => [c, formData.get(c)]),
+      ),
+    }) as Record<string, string | undefined>;
+  } catch (e) {
+    return { error: mensajeDeError(e, "Revisa los datos capturados.") };
+  }
+
+  const { ministroId, ministroTexto } = await resolverMinistro(
+    formData,
+    acta.iglesiaId,
+    limpiar(datos.ministro),
+  );
+
+  // Qué cambió, para el historial y para no escribir si no cambió nada.
+  const cambios: Record<string, { antes: string | null; despues: string | null }> = {};
+  const datosSacramento: Record<string, ValorCampo> = {};
+
+  for (const campo of camposDelSacramento(acta.tipo)) {
+    const nuevo = convertirCampo(campo, datos[campo]);
+    datosSacramento[campo] = nuevo;
+    const antes = comoTexto((detalleActual as Record<string, unknown>)[campo]);
+    const despues = comoTexto(nuevo);
+    if (antes !== despues) cambios[campo] = { antes, despues };
+  }
+
+  const nuevosDelActa = {
+    fecha: new Date(datos.fecha!),
+    lugar: limpiar(datos.lugar),
+    ministro: ministroTexto,
+    ministroId,
+    observaciones: limpiar(datos.observaciones),
+  };
+  for (const [campo, antesValor, despuesValor] of [
+    ["fecha", acta.fecha, nuevosDelActa.fecha],
+    ["lugar", acta.lugar, nuevosDelActa.lugar],
+    ["ministro", acta.ministro, nuevosDelActa.ministro],
+    ["observaciones", acta.observaciones, nuevosDelActa.observaciones],
+  ] as const) {
+    const antes = comoTexto(antesValor);
+    const despues = comoTexto(despuesValor);
+    if (antes !== despues) cambios[campo] = { antes, despues };
+  }
+
+  if (Object.keys(cambios).length === 0) {
+    return { error: "No cambiaste ningún dato." };
+  }
+
+  const motivo = formData.get("motivo");
+
+  try {
+    await prisma.$transaction([
+      // @ts-expect-error la relación se resuelve por tipo de acta en tiempo de ejecución
+      prisma[relacion].update({ where: { actaId }, data: datosSacramento }),
+      prisma.acta.update({
+        where: { id: actaId },
+        data: {
+          ...nuevosDelActa,
+          actualizadoPorId: sesion.id,
+          textoBusqueda: textoBusquedaDeDetalle({
+            [relacion]: { create: datosSacramento },
+          } as Parameters<typeof textoBusquedaDeDetalle>[0]),
+        },
+      }),
+      prisma.correccionActa.create({
+        data: {
+          actaId,
+          corregidoPorId: sesion.id,
+          motivo: typeof motivo === "string" && motivo.trim() ? motivo.trim() : null,
+          cambios,
+        },
+      }),
+    ]);
+  } catch (e) {
+    if (esErrorDeUsuarioInvalido(e)) return { error: MENSAJE_SESION_INVALIDA };
+    throw e;
+  }
+
+  revalidatePath(`/actas/${actaId}`);
+  revalidatePath("/actas");
+  redirect(`/actas/${actaId}`);
 }

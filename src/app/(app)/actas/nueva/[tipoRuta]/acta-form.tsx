@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { crearActa } from "../../actions";
+import { crearActa, corregirActa } from "../../actions";
 import { Campo, Seccion } from "@/components/form-fields";
 import { CobroModal } from "@/components/cobro-modal";
 import { PARTIDAS_POR_FOJA_DEFECTO } from "@/lib/libro";
@@ -25,6 +25,9 @@ export function ActaForm({
   precioRegistro,
   libroInicial,
   historicoInicial = false,
+  modo = "crear",
+  actaId,
+  valores,
 }: {
   tipo: TipoActa;
   iglesias: Iglesia[];
@@ -35,7 +38,15 @@ export function ActaForm({
   precioRegistro?: number | null;
   libroInicial?: string;
   historicoInicial?: boolean;
+  /** "editar" corrige un acta ya registrada: no toca libro, partida ni cobro. */
+  modo?: "crear" | "editar";
+  actaId?: string;
+  valores?: Record<string, string>;
 }) {
+  const editando = modo === "editar";
+  /** Valor inicial de un campo al corregir; vacío al crear. */
+  const v = (campo: string) => valores?.[campo];
+
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const ventanaRef = useRef<Window | null>(null);
@@ -84,6 +95,12 @@ export function ActaForm({
     if (!formRef.current) return;
     const formData = new FormData(formRef.current);
     startTransition(async () => {
+      if (editando) {
+        // corregirActa redirige a la ficha al terminar; solo vuelve con error.
+        const r = await corregirActa(null, formData);
+        if (r && "error" in r) setError(r.error);
+        return;
+      }
       const resultado = await crearActa(formData);
       if ("error" in resultado) {
         ventanaRef.current?.close();
@@ -104,6 +121,10 @@ export function ActaForm({
 
   function alHacerClicGuardar() {
     if (!formRef.current?.reportValidity()) return;
+    if (editando) {
+      guardar();
+      return;
+    }
     // Se abre la pestaña ya (dentro del gesto del usuario) para que el PDF se
     // pueda imprimir automáticamente al guardar, sin que el navegador la bloquee.
     ventanaRef.current = window.open("", "_blank");
@@ -117,9 +138,15 @@ export function ActaForm({
   return (
     <form ref={formRef} className="space-y-4">
       <input type="hidden" name="tipo" value={tipo} />
-      <input type="hidden" name="libro" value={libro} />
-      <input type="hidden" name="metodoPago" value={metodoPago} />
-      {iglesias.length > 0 && (
+      {editando ? (
+        <input type="hidden" name="actaId" value={actaId} />
+      ) : (
+        <>
+          <input type="hidden" name="libro" value={libro} />
+          <input type="hidden" name="metodoPago" value={metodoPago} />
+        </>
+      )}
+      {!editando && iglesias.length > 0 && (
         <Seccion titulo="Iglesia">
           <div>
             <label htmlFor="iglesiaId" className="block text-xs font-medium text-slate-600">
@@ -147,7 +174,9 @@ export function ActaForm({
       )}
 
       <Seccion titulo="Datos del acta">
-        <div>
+        {/* La ubicación en el libro no es un dato corregible: es dónde está
+            asentada la partida. Al corregir, ni se muestra ni se envía. */}
+        <div className={editando ? "hidden" : undefined}>
           <label className="block text-xs font-medium text-slate-600">
             Libro <span className="text-red-500">*</span>
           </label>
@@ -234,15 +263,15 @@ export function ActaForm({
             </div>
           )}
         </div>
-        <Campo label="Fecha del sacramento" name="fecha" type="date" required />
-        <Campo label="Lugar" name="lugar" />
+        <Campo label="Fecha del sacramento" name="fecha" defaultValue={v("fecha")} type="date" required />
+        <Campo label="Lugar" name="lugar" defaultValue={v("lugar")} />
         <div>
           <label htmlFor="ministroId" className="block text-xs font-medium text-slate-600">
             Ministro / celebrante
           </label>
           <select
             id="ministroId"
-            name="ministroId"
+            name="ministroId" defaultValue={v("ministroId")}
             value={ministroId}
             onChange={(e) => setMinistroId(e.target.value)}
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -285,7 +314,7 @@ export function ActaForm({
 
       {tipo === "BAUTIZO" && (
         <Seccion titulo="Datos del bautizado">
-          <Campo label="Nombre completo" name="nombreCompleto" required />
+          <Campo label="Nombre completo" name="nombreCompleto" defaultValue={v("nombreCompleto")} required />
           <div>
             <label htmlFor="sexo" className="block text-xs font-medium text-slate-600">
               Sexo
@@ -293,7 +322,7 @@ export function ActaForm({
             <select
               id="sexo"
               name="sexo"
-              defaultValue=""
+              defaultValue={v("sexo") ?? ""}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             >
               <option value="">-- Selecciona --</option>
@@ -301,21 +330,21 @@ export function ActaForm({
               <option value="FEMENINO">Niña</option>
             </select>
           </div>
-          <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
-          <Campo label="Lugar de nacimiento" name="lugarNacimiento" />
-          <Campo label="Domicilio" name="domicilio" />
-          <Campo label="Nombre del padre" name="nombrePadre" />
-          <Campo label="Nombre de la madre" name="nombreMadre" />
-          <Campo label="Padrino" name="padrino" />
-          <Campo label="Madrina" name="madrina" />
+          <Campo label="Fecha de nacimiento" name="fechaNacimiento" defaultValue={v("fechaNacimiento")} type="date" />
+          <Campo label="Lugar de nacimiento" name="lugarNacimiento" defaultValue={v("lugarNacimiento")} />
+          <Campo label="Domicilio" name="domicilio" defaultValue={v("domicilio")} />
+          <Campo label="Nombre del padre" name="nombrePadre" defaultValue={v("nombrePadre")} />
+          <Campo label="Nombre de la madre" name="nombreMadre" defaultValue={v("nombreMadre")} />
+          <Campo label="Padrino" name="padrino" defaultValue={v("padrino")} />
+          <Campo label="Madrina" name="madrina" defaultValue={v("madrina")} />
         </Seccion>
       )}
 
       {tipo === "PRIMERA_COMUNION" && (
         <>
           <Seccion titulo="Datos del comulgante">
-            <Campo label="Nombre(s)" name="nombre" required />
-            <Campo label="Apellidos" name="apellidos" required />
+            <Campo label="Nombre(s)" name="nombre" defaultValue={v("nombre")} required />
+            <Campo label="Apellidos" name="apellidos" defaultValue={v("apellidos")} required />
             <div>
               <label htmlFor="sexo" className="block text-xs font-medium text-slate-600">
                 Sexo
@@ -323,7 +352,7 @@ export function ActaForm({
               <select
                 id="sexo"
                 name="sexo"
-                defaultValue=""
+                defaultValue={v("sexo") ?? ""}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
               >
                 <option value="">-- Selecciona --</option>
@@ -331,16 +360,16 @@ export function ActaForm({
                 <option value="FEMENINO">Femenino</option>
               </select>
             </div>
-            <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
-            <Campo label="Nombre del padre" name="nombrePadre" />
-            <Campo label="Nombre de la madre" name="nombreMadre" />
-            <Campo label="Padrino" name="padrino" />
-            <Campo label="Madrina" name="madrina" />
-            <Campo label="Catequista" name="catequista" />
+            <Campo label="Fecha de nacimiento" name="fechaNacimiento" defaultValue={v("fechaNacimiento")} type="date" />
+            <Campo label="Nombre del padre" name="nombrePadre" defaultValue={v("nombrePadre")} />
+            <Campo label="Nombre de la madre" name="nombreMadre" defaultValue={v("nombreMadre")} />
+            <Campo label="Padrino" name="padrino" defaultValue={v("padrino")} />
+            <Campo label="Madrina" name="madrina" defaultValue={v("madrina")} />
+            <Campo label="Catequista" name="catequista" defaultValue={v("catequista")} />
           </Seccion>
           <Seccion titulo="Bautismo de referencia">
-            <Campo label="Parroquia donde fue bautizado" name="parroquiaBautismo" />
-            <Campo label="Fecha de bautismo" name="fechaBautismo" type="date" />
+            <Campo label="Parroquia donde fue bautizado" name="parroquiaBautismo" defaultValue={v("parroquiaBautismo")} />
+            <Campo label="Fecha de bautismo" name="fechaBautismo" defaultValue={v("fechaBautismo")} type="date" />
           </Seccion>
         </>
       )}
@@ -348,7 +377,7 @@ export function ActaForm({
       {tipo === "CONFIRMACION" && (
         <>
           <Seccion titulo="Datos del confirmando">
-            <Campo label="Nombre completo" name="nombreCompleto" required />
+            <Campo label="Nombre completo" name="nombreCompleto" defaultValue={v("nombreCompleto")} required />
             <div>
               <label htmlFor="sexo" className="block text-xs font-medium text-slate-600">
                 Sexo
@@ -356,7 +385,7 @@ export function ActaForm({
               <select
                 id="sexo"
                 name="sexo"
-                defaultValue=""
+                defaultValue={v("sexo") ?? ""}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
               >
                 <option value="">-- Selecciona --</option>
@@ -364,20 +393,20 @@ export function ActaForm({
                 <option value="FEMENINO">Femenino</option>
               </select>
             </div>
-            <Campo label="Fecha de nacimiento" name="fechaNacimiento" type="date" />
-            <Campo label="Lugar de nacimiento" name="lugarNacimiento" />
-            <Campo label="Nombre del padre" name="nombrePadre" />
-            <Campo label="Nombre de la madre" name="nombreMadre" />
-            <Campo label="Padrino" name="padrino" />
-            <Campo label="Madrina" name="madrina" />
-            <Campo label="Obispo / ministro" name="obispoMinistro" />
+            <Campo label="Fecha de nacimiento" name="fechaNacimiento" defaultValue={v("fechaNacimiento")} type="date" />
+            <Campo label="Lugar de nacimiento" name="lugarNacimiento" defaultValue={v("lugarNacimiento")} />
+            <Campo label="Nombre del padre" name="nombrePadre" defaultValue={v("nombrePadre")} />
+            <Campo label="Nombre de la madre" name="nombreMadre" defaultValue={v("nombreMadre")} />
+            <Campo label="Padrino" name="padrino" defaultValue={v("padrino")} />
+            <Campo label="Madrina" name="madrina" defaultValue={v("madrina")} />
+            <Campo label="Obispo / ministro" name="obispoMinistro" defaultValue={v("obispoMinistro")} />
           </Seccion>
           <Seccion titulo="Bautismo de referencia">
-            <Campo label="Parroquia donde fue bautizado" name="parroquiaBautismo" />
-            <Campo label="Fecha de bautismo" name="fechaBautismo" type="date" />
-            <Campo label="Libro de bautismos" name="libroBautismo" />
-            <Campo label="Foja" name="fojaBautismo" type="number" min="1" />
-            <Campo label="No. de acta de bautismo" name="actaBautismo" type="number" min="1" />
+            <Campo label="Parroquia donde fue bautizado" name="parroquiaBautismo" defaultValue={v("parroquiaBautismo")} />
+            <Campo label="Fecha de bautismo" name="fechaBautismo" defaultValue={v("fechaBautismo")} type="date" />
+            <Campo label="Libro de bautismos" name="libroBautismo" defaultValue={v("libroBautismo")} />
+            <Campo label="Foja" name="fojaBautismo" defaultValue={v("fojaBautismo")} type="number" min="1" />
+            <Campo label="No. de acta de bautismo" name="actaBautismo" defaultValue={v("actaBautismo")} type="number" min="1" />
           </Seccion>
         </>
       )}
@@ -385,42 +414,51 @@ export function ActaForm({
       {tipo === "MATRIMONIO" && (
         <>
           <Seccion titulo="Datos del esposo">
-            <Campo label="Nombre completo" name="nombreEsposo" required />
-            <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposo" type="date" />
+            <Campo label="Nombre completo" name="nombreEsposo" defaultValue={v("nombreEsposo")} required />
+            <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposo" defaultValue={v("fechaNacimientoEsposo")} type="date" />
             <Campo
               label="Estado civil"
-              name="estadoCivilEsposo"
+              name="estadoCivilEsposo" defaultValue={v("estadoCivilEsposo")}
               hint='Ej. "soltero", "viudo"'
             />
-            <Campo label="Edad" name="edadEsposo" type="number" min="0" />
-            <Campo label="Originario de" name="origenEsposo" />
-            <Campo label="Domicilio" name="domicilioEsposo" />
-            <Campo label="Nombre del padre" name="padreEsposo" />
-            <Campo label="Nombre de la madre" name="madreEsposo" />
+            <Campo label="Edad" name="edadEsposo" defaultValue={v("edadEsposo")} type="number" min="0" />
+            <Campo label="Originario de" name="origenEsposo" defaultValue={v("origenEsposo")} />
+            <Campo label="Domicilio" name="domicilioEsposo" defaultValue={v("domicilioEsposo")} />
+            <Campo label="Nombre del padre" name="padreEsposo" defaultValue={v("padreEsposo")} />
+            <Campo label="Nombre de la madre" name="madreEsposo" defaultValue={v("madreEsposo")} />
           </Seccion>
           <Seccion titulo="Datos de la esposa">
-            <Campo label="Nombre completo" name="nombreEsposa" required />
-            <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposa" type="date" />
+            <Campo label="Nombre completo" name="nombreEsposa" defaultValue={v("nombreEsposa")} required />
+            <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposa" defaultValue={v("fechaNacimientoEsposa")} type="date" />
             <Campo
               label="Estado civil"
-              name="estadoCivilEsposa"
+              name="estadoCivilEsposa" defaultValue={v("estadoCivilEsposa")}
               hint='Ej. "soltera", "viuda"'
             />
-            <Campo label="Edad" name="edadEsposa" type="number" min="0" />
-            <Campo label="Originaria de" name="origenEsposa" />
-            <Campo label="Domicilio (vecina de)" name="domicilioEsposa" />
-            <Campo label="Nombre del padre" name="padreEsposa" />
-            <Campo label="Nombre de la madre" name="madreEsposa" />
+            <Campo label="Edad" name="edadEsposa" defaultValue={v("edadEsposa")} type="number" min="0" />
+            <Campo label="Originaria de" name="origenEsposa" defaultValue={v("origenEsposa")} />
+            <Campo label="Domicilio (vecina de)" name="domicilioEsposa" defaultValue={v("domicilioEsposa")} />
+            <Campo label="Nombre del padre" name="padreEsposa" defaultValue={v("padreEsposa")} />
+            <Campo label="Nombre de la madre" name="madreEsposa" defaultValue={v("madreEsposa")} />
           </Seccion>
           <Seccion titulo="Testigos y acta civil">
-            <Campo label="Testigo 1" name="testigo1" />
-            <Campo label="Testigo 2" name="testigo2" />
-            <Campo label="No. de acta civil" name="actaCivilNumero" />
-            <Campo label="Se tramitó en" name="lugarTramite" />
+            <Campo label="Testigo 1" name="testigo1" defaultValue={v("testigo1")} />
+            <Campo label="Testigo 2" name="testigo2" defaultValue={v("testigo2")} />
+            <Campo label="No. de acta civil" name="actaCivilNumero" defaultValue={v("actaCivilNumero")} />
+            <Campo label="Se tramitó en" name="lugarTramite" defaultValue={v("lugarTramite")} />
           </Seccion>
         </>
       )}
 
+      {editando && (
+        <Seccion titulo="Motivo de la corrección">
+          <Campo
+            label="Motivo (opcional)"
+            name="motivo"
+            hint="Queda en el historial del acta, junto a qué cambió y quién lo cambió."
+          />
+        </Seccion>
+      )}
       <Seccion titulo="Observaciones">
         <div className="sm:col-span-2">
           <label htmlFor="observaciones" className="block text-xs font-medium text-slate-600">
@@ -428,7 +466,7 @@ export function ActaForm({
           </label>
           <textarea
             id="observaciones"
-            name="observaciones"
+            name="observaciones" defaultValue={v("observaciones")}
             rows={3}
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
@@ -440,11 +478,11 @@ export function ActaForm({
       <div className="flex gap-3">
         <button
           type="button"
-          disabled={pending || !!libroSeleccionadoLleno}
+          disabled={pending || (!editando && !!libroSeleccionadoLleno)}
           onClick={alHacerClicGuardar}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
         >
-          {pending ? "Guardando..." : "Guardar acta"}
+          {pending ? "Guardando..." : editando ? "Guardar correcciones" : "Guardar acta"}
         </button>
       </div>
 

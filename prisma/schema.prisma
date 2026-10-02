@@ -340,6 +340,7 @@ model Usuario {
   actasActualizadas Acta[] @relation("ActaActualizadaPor")
   pagosCobrados Pago[]
   impresionesActa ImpresionActa[]
+  correccionesActa CorreccionActa[]
   ventasRealizadas Venta[]
   ajustesInventarioRealizados AjusteInventario[]
   transferenciasRealizadas TransferenciaInventario[]
@@ -415,6 +416,7 @@ model Acta {
   matrimonio       Matrimonio?
   pagos            Pago[]
   impresiones      ImpresionActa[]
+  correcciones     CorreccionActa[]
 
   @@unique([iglesiaId, tipo, libro, numeroActa])
   @@index([iglesiaId, tipo])
@@ -427,6 +429,31 @@ model Acta {
  * entrega, de modo que queda rastro aunque la reimpresión sea gratuita o
  * aunque se llegue al PDF escribiendo la URL en vez de usar el botón.
  */
+/**
+ * Historial de correcciones de un acta.
+ *
+ * Una errata de captura se corrige gratis —el libro físico está bien y el
+ * sistema mal—, pero en un archivo sacramental tiene que poder responderse
+ * "¿qué decía esta partida antes de que la tocaran?". Por eso cada corrección
+ * guarda los valores anteriores de los campos que cambiaron.
+ */
+model CorreccionActa {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  /** { campo: { antes, despues } } de lo que cambió en esta corrección. */
+  cambios   Json
+  motivo    String?
+
+  actaId String
+  acta   Acta   @relation(fields: [actaId], references: [id], onDelete: Cascade)
+
+  corregidoPorId String?
+  corregidoPor   Usuario? @relation(fields: [corregidoPorId], references: [id])
+
+  @@index([actaId])
+  @@map("correcciones_acta")
+}
+
 model ImpresionActa {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
