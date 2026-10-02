@@ -33,6 +33,19 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 8,
   },
+  bloqueContrayentes: {
+    marginTop: 16,
+  },
+  etiquetaContrayentes: {
+    fontSize: 9,
+    color: "#475569",
+  },
+  nombreContrayente: {
+    fontSize: 10,
+    fontWeight: 700,
+    marginTop: 3,
+    lineHeight: 1.3,
+  },
   cuerpo: {
     flex: 1,
     paddingLeft: 12,
@@ -112,6 +125,12 @@ export function MatrimonioActaPdf({ acta }: { acta: ActaMatrimonio }) {
             <Text style={styles.tituloActa}>Acta</Text>
             <Text style={styles.tituloActaLinea2}>de Matrimonio</Text>
             <Text style={styles.numero}>No. {acta.numeroActa}</Text>
+
+            <View style={styles.bloqueContrayentes}>
+              <Text style={styles.etiquetaContrayentes}>CONTRAYENTES:</Text>
+              <Text style={styles.nombreContrayente}>{v(m.nombreEsposo)}</Text>
+              <Text style={styles.nombreContrayente}>{v(m.nombreEsposa)}</Text>
+            </View>
           </View>
 
           <View style={styles.cuerpo}>

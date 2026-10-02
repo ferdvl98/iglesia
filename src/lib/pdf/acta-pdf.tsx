@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 import type { Acta, Iglesia, Bautizo, PrimeraComunion, Confirmacion, Matrimonio } from "@prisma/client";
 import { TIPO_ACTA_LABEL } from "@/lib/tipos-acta";
 import { formatearFechaLarga } from "@/lib/fecha";
@@ -6,6 +6,11 @@ import { MatrimonioActaPdf } from "@/lib/pdf/matrimonio-pdf";
 import { BautizoActaPdf } from "@/lib/pdf/bautizo-pdf";
 import { ConfirmacionActaPdf } from "@/lib/pdf/confirmacion-pdf";
 import { PrimeraComunionActaPdf } from "@/lib/pdf/primera-comunion-pdf";
+
+// Los nombres propios no se parten con guion al final del renglón: en un acta, un apellido
+// cortado como "ESCO-BAR" se lee como un error del documento. Se aplica a los cuatro formatos,
+// que es donde más se nota, en las columnas angostas de nombres.
+Font.registerHyphenationCallback((palabra) => [palabra]);
 
 type ActaCompleta = Acta & {
   iglesia: Iglesia;
