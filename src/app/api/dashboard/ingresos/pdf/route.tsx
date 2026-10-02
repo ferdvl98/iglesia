@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { requireSesion, filtroIglesia } from "@/lib/authz";
+import { obtenerSesion, filtroIglesia, puedeVerIngresos } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import {
   resolverRangoMeses,
@@ -13,7 +13,13 @@ import {
 import { InformeIngresosPdf } from "@/lib/pdf/informe-ingresos-pdf";
 
 export async function GET(req: Request) {
-  const sesion = await requireSesion();
+  const sesion = await obtenerSesion();
+  if (!sesion) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+  if (!puedeVerIngresos(sesion)) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
   const where = filtroIglesia(sesion);
   const url = new URL(req.url);
   const params = {

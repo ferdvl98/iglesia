@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireSesion, filtroIglesia } from "@/lib/authz";
+import { requireSesion, filtroIglesia, puedeVerIngresos } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { TIPO_ACTA_LABEL, TIPOS_ACTA } from "@/lib/tipos-acta";
 import {
@@ -20,6 +20,7 @@ export default async function DashboardPage({
   const sesion = await requireSesion();
   const where = filtroIglesia(sesion);
   const params = await searchParams;
+  const verIngresos = puedeVerIngresos(sesion);
 
   const conteos = await prisma.acta.groupBy({
     by: ["tipo"],
@@ -28,19 +29,19 @@ export default async function DashboardPage({
   });
 
   const totalPorTipo = Object.fromEntries(
-    TIPOS_ACTA.map((tipo) => [
-      tipo,
-      conteos.find((c) => c.tipo === tipo)?._count._all ?? 0,
-    ]),
+    TIPOS_ACTA.map((tipo) => [tipo, conteos.find((c) => c.tipo === tipo)?._count._all ?? 0]),
   );
 
   const { desde, hasta } = resolverRangoMeses(params);
-  const [ingresosPorMes, reimpresionesPorTipo, ventasPorMes, productosMasVendidos] = await Promise.all([
-    calcularIngresosPorMes(where, desde, hasta),
-    calcularReimpresionesPorTipo(where, desde, hasta),
-    calcularVentasPorMes(where, desde, hasta),
-    calcularProductosMasVendidos(where, desde, hasta),
-  ]);
+  // Sin el permiso ni siquiera se consultan los importes.
+  const reimpresionesPorTipo = await calcularReimpresionesPorTipo(where, desde, hasta);
+  const [ingresosPorMes, ventasPorMes, productosMasVendidos] = verIngresos
+    ? await Promise.all([
+        calcularIngresosPorMes(where, desde, hasta),
+        calcularVentasPorMes(where, desde, hasta),
+        calcularProductosMasVendidos(where, desde, hasta),
+      ])
+    : [[], [], []];
 
   const totalGanadoPeriodo = ingresosPorMes.reduce((acc, m) => acc + m.total, 0);
   const totalReimpresiones = TIPOS_ACTA.reduce((acc, t) => acc + reimpresionesPorTipo[t], 0);
@@ -54,9 +55,7 @@ export default async function DashboardPage({
     <div className="space-y-8">
       <div>
         <h1 className="text-lg font-semibold text-slate-900">Resumen</h1>
-        <p className="text-sm text-slate-500">
-          Actas registradas por tipo de sacramento.
-        </p>
+        <p className="text-sm text-slate-500">Actas registradas por tipo de sacramento.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -65,9 +64,7 @@ export default async function DashboardPage({
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
               {TIPO_ACTA_LABEL[tipo]}
             </p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">
-              {totalPorTipo[tipo]}
-            </p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{totalPorTipo[tipo]}</p>
           </div>
         ))}
       </div>
@@ -87,13 +84,15 @@ export default async function DashboardPage({
         </Link>
       </div>
 
-      <FiltroPeriodo presetActual={params.preset ?? "6m"} desdeActual={params.desde} hastaActual={params.hasta} />
+      <FiltroPeriodo
+        presetActual={params.preset ?? "6m"}
+        desdeActual={params.desde}
+        hastaActual={params.hasta}
+      />
 
       <div>
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Reimpresiones por tipo
-          </h2>
+          <h2 className="text-sm font-semibold text-slate-900">Reimpresiones por tipo</h2>
           <p className="text-xs text-slate-500">{totalReimpresiones} en total en el período</p>
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -110,34 +109,40 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <div>
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-semibold text-slate-900">Ingresos por mes</h2>
-          <div className="flex items-center gap-3">
-            <p className="text-xs text-slate-500">
-              Total del período{" "}
-              {totalGanadoPeriodo.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 })}
-            </p>
-            <Link
-              href={`/api/dashboard/ingresos/pdf?${qsDescarga.toString()}`}
-              className="text-xs font-medium text-slate-600 underline hover:text-slate-900"
-            >
-              Descargar PDF
-            </Link>
-            <Link
-              href={`/api/dashboard/ingresos/csv?${qsDescarga.toString()}`}
-              className="text-xs font-medium text-slate-600 underline hover:text-slate-900"
-            >
-              Descargar Excel
-            </Link>
+      {verIngresos && (
+        <div>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">Ingresos por mes</h2>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-slate-500">
+                Total del período{" "}
+                {totalGanadoPeriodo.toLocaleString("es-MX", {
+                  style: "currency",
+                  currency: "MXN",
+                  maximumFractionDigits: 0,
+                })}
+              </p>
+              <Link
+                href={`/api/dashboard/ingresos/pdf?${qsDescarga.toString()}`}
+                className="text-xs font-medium text-slate-600 underline hover:text-slate-900"
+              >
+                Descargar PDF
+              </Link>
+              <Link
+                href={`/api/dashboard/ingresos/csv?${qsDescarga.toString()}`}
+                className="text-xs font-medium text-slate-600 underline hover:text-slate-900"
+              >
+                Descargar Excel
+              </Link>
+            </div>
           </div>
+          <IngresosChart meses={ingresosPorMes} />
+          <div className="mt-4">
+            <IngresosTabla meses={ingresosPorMes} />
+          </div>
+          <VentasResumen meses={ventasPorMes} productos={productosMasVendidos} />
         </div>
-        <IngresosChart meses={ingresosPorMes} />
-        <div className="mt-4">
-          <IngresosTabla meses={ingresosPorMes} />
-        </div>
-        <VentasResumen meses={ventasPorMes} productos={productosMasVendidos} />
-      </div>
+      )}
     </div>
   );
 }

@@ -9,11 +9,19 @@ export type IngresoMes = {
   total: number;
 };
 
-export type ParametrosPeriodo = { preset?: string; desde?: string; hasta?: string };
+export type ParametrosPeriodo = {
+  preset?: string;
+  desde?: string;
+  hasta?: string;
+};
 
 export type VentaMes = { clave: string; etiqueta: string; total: number };
 
-export type ProductoVendido = { nombre: string; cantidad: number; subtotal: number };
+export type ProductoVendido = {
+  nombre: string;
+  cantidad: number;
+  subtotal: number;
+};
 
 // Paleta categórica validada (orden fijo, nunca ciclada) — ver skill de dataviz.
 export const COLOR_TIPO_ACTA: Record<TipoActa, string> = {
@@ -51,7 +59,10 @@ function primerDiaMes(anio: number, mes: number) {
 }
 
 /** Resuelve el rango [desde, hasta] (inclusive, por mes) a partir de los parámetros de la URL. */
-export function resolverRangoMeses(params: ParametrosPeriodo): { desde: Date; hasta: Date } {
+export function resolverRangoMeses(params: ParametrosPeriodo): {
+  desde: Date;
+  hasta: Date;
+} {
   const ahora = new Date();
   const inicioMesActual = primerDiaMes(ahora.getFullYear(), ahora.getMonth());
 
@@ -63,16 +74,31 @@ export function resolverRangoMeses(params: ParametrosPeriodo): { desde: Date; ha
 
   switch (params.preset) {
     case "3m":
-      return { desde: primerDiaMes(ahora.getFullYear(), ahora.getMonth() - 2), hasta: inicioMesActual };
+      return {
+        desde: primerDiaMes(ahora.getFullYear(), ahora.getMonth() - 2),
+        hasta: inicioMesActual,
+      };
     case "12m":
-      return { desde: primerDiaMes(ahora.getFullYear(), ahora.getMonth() - 11), hasta: inicioMesActual };
+      return {
+        desde: primerDiaMes(ahora.getFullYear(), ahora.getMonth() - 11),
+        hasta: inicioMesActual,
+      };
     case "ano":
-      return { desde: primerDiaMes(ahora.getFullYear(), 0), hasta: inicioMesActual };
+      return {
+        desde: primerDiaMes(ahora.getFullYear(), 0),
+        hasta: inicioMesActual,
+      };
     case "ano-pasado":
-      return { desde: primerDiaMes(ahora.getFullYear() - 1, 0), hasta: primerDiaMes(ahora.getFullYear() - 1, 11) };
+      return {
+        desde: primerDiaMes(ahora.getFullYear() - 1, 0),
+        hasta: primerDiaMes(ahora.getFullYear() - 1, 11),
+      };
     case "6m":
     default:
-      return { desde: primerDiaMes(ahora.getFullYear(), ahora.getMonth() - 5), hasta: inicioMesActual };
+      return {
+        desde: primerDiaMes(ahora.getFullYear(), ahora.getMonth() - 5),
+        hasta: inicioMesActual,
+      };
   }
 }
 
@@ -90,6 +116,16 @@ function listaDeMeses(desde: Date, hasta: Date): IngresoMes[] {
     cursor.setMonth(cursor.getMonth() + 1);
   }
   return meses;
+}
+
+/**
+ * Los importes se guardan como Float, así que sumar muchos pagos arrastra el
+ * error típico del punto flotante (0.1 + 0.2 = 0.30000000000000004). Se redondea
+ * a centavos al cerrar cada suma: el dashboard lo disimulaba al formatear, pero
+ * el CSV escribe el número crudo y ese sí llega así a Excel.
+ */
+export function redondearPesos(monto: number) {
+  return Math.round(monto * 100) / 100;
 }
 
 /** Ingresos (REGISTRO + REIMPRESION) agrupados por mes y tipo de acta, para el rango dado. */
@@ -113,7 +149,8 @@ export async function calcularIngresosPorMes(
     mes.porTipo[pago.acta.tipo] += pago.monto;
   }
   for (const mes of meses) {
-    mes.total = TIPOS_ACTA.reduce((acc, t) => acc + mes.porTipo[t], 0);
+    for (const t of TIPOS_ACTA) mes.porTipo[t] = redondearPesos(mes.porTipo[t]);
+    mes.total = redondearPesos(TIPOS_ACTA.reduce((acc, t) => acc + mes.porTipo[t], 0));
   }
   return meses;
 }
@@ -126,7 +163,11 @@ export async function calcularReimpresionesPorTipo(
 ): Promise<Record<TipoActa, number>> {
   const finExclusivo = new Date(hasta.getFullYear(), hasta.getMonth() + 1, 1);
   const pagos = await prisma.pago.findMany({
-    where: { acta: whereActa, concepto: "REIMPRESION", createdAt: { gte: desde, lt: finExclusivo } },
+    where: {
+      acta: whereActa,
+      concepto: "REIMPRESION",
+      createdAt: { gte: desde, lt: finExclusivo },
+    },
     select: { acta: { select: { tipo: true } } },
   });
   const resultado = Object.fromEntries(TIPOS_ACTA.map((t) => [t, 0])) as Record<TipoActa, number>;
@@ -150,12 +191,17 @@ export async function calcularVentasPorMes(
     select: { total: true, createdAt: true },
   });
 
-  const meses = listaDeMeses(desde, hasta).map(({ clave, etiqueta }) => ({ clave, etiqueta, total: 0 }));
+  const meses = listaDeMeses(desde, hasta).map(({ clave, etiqueta }) => ({
+    clave,
+    etiqueta,
+    total: 0,
+  }));
   const porClave = new Map(meses.map((m) => [m.clave, m]));
   for (const venta of ventas) {
     const mes = porClave.get(claveMes(venta.createdAt));
     if (mes) mes.total += venta.total;
   }
+  for (const mes of meses) mes.total = redondearPesos(mes.total);
   return meses;
 }
 
@@ -168,7 +214,9 @@ export async function calcularProductosMasVendidos(
 ): Promise<ProductoVendido[]> {
   const finExclusivo = new Date(hasta.getFullYear(), hasta.getMonth() + 1, 1);
   const items = await prisma.ventaItem.findMany({
-    where: { venta: { ...whereIglesia, createdAt: { gte: desde, lt: finExclusivo } } },
+    where: {
+      venta: { ...whereIglesia, createdAt: { gte: desde, lt: finExclusivo } },
+    },
     select: { nombreProducto: true, cantidad: true, subtotal: true },
   });
 

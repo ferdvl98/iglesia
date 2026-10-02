@@ -312,7 +312,12 @@ export function InformeIngresosPdf({
 
         <Text style={styles.piePagina}>
           Documento generado el{" "}
-          {new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}.
+          {new Date().toLocaleDateString("es-MX", {
+            timeZone: "UTC",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}.
         </Text>
       </Page>
     </Document>

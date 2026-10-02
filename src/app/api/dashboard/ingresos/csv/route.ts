@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSesion, filtroIglesia } from "@/lib/authz";
+import { obtenerSesion, filtroIglesia, puedeVerIngresos } from "@/lib/authz";
 import { TIPO_ACTA_LABEL, TIPOS_ACTA } from "@/lib/tipos-acta";
 import {
   resolverRangoMeses,
@@ -8,6 +8,7 @@ import {
   calcularVentasPorMes,
   calcularProductosMasVendidos,
   etiquetaPeriodo,
+  redondearPesos,
 } from "@/lib/ingresos";
 
 function celda(valor: string | number) {
@@ -20,7 +21,13 @@ function fila(valores: (string | number)[]) {
 }
 
 export async function GET(req: Request) {
-  const sesion = await requireSesion();
+  const sesion = await obtenerSesion();
+  if (!sesion) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+  if (!puedeVerIngresos(sesion)) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
   const where = filtroIglesia(sesion);
   const url = new URL(req.url);
   const params = {
@@ -30,12 +37,13 @@ export async function GET(req: Request) {
   };
 
   const { desde, hasta } = resolverRangoMeses(params);
-  const [ingresosPorMes, reimpresionesPorTipo, ventasPorMes, productosMasVendidos] = await Promise.all([
-    calcularIngresosPorMes(where, desde, hasta),
-    calcularReimpresionesPorTipo(where, desde, hasta),
-    calcularVentasPorMes(where, desde, hasta),
-    calcularProductosMasVendidos(where, desde, hasta, 10),
-  ]);
+  const [ingresosPorMes, reimpresionesPorTipo, ventasPorMes, productosMasVendidos] =
+    await Promise.all([
+      calcularIngresosPorMes(where, desde, hasta),
+      calcularReimpresionesPorTipo(where, desde, hasta),
+      calcularVentasPorMes(where, desde, hasta),
+      calcularProductosMasVendidos(where, desde, hasta, 10),
+    ]);
 
   const lineas: string[] = [];
   lineas.push(fila([`Ingresos — ${etiquetaPeriodo(desde, hasta)}`]));
@@ -44,11 +52,13 @@ export async function GET(req: Request) {
   for (const mes of ingresosPorMes) {
     lineas.push(fila([mes.etiqueta, ...TIPOS_ACTA.map((t) => mes.porTipo[t]), mes.total]));
   }
-  const totalGeneral = ingresosPorMes.reduce((acc, m) => acc + m.total, 0);
+  const totalGeneral = redondearPesos(ingresosPorMes.reduce((acc, m) => acc + m.total, 0));
   lineas.push(
     fila([
       "Total del período",
-      ...TIPOS_ACTA.map((t) => ingresosPorMes.reduce((acc, m) => acc + m.porTipo[t], 0)),
+      ...TIPOS_ACTA.map((t) =>
+        redondearPesos(ingresosPorMes.reduce((acc, m) => acc + m.porTipo[t], 0)),
+      ),
       totalGeneral,
     ]),
   );
@@ -59,7 +69,7 @@ export async function GET(req: Request) {
     lineas.push(fila([TIPO_ACTA_LABEL[tipo], reimpresionesPorTipo[tipo]]));
   }
 
-  const totalVentas = ventasPorMes.reduce((acc, m) => acc + m.total, 0);
+  const totalVentas = redondearPesos(ventasPorMes.reduce((acc, m) => acc + m.total, 0));
   lineas.push("");
   lineas.push(fila(["Punto de venta (aparte de actas)"]));
   lineas.push(fila(["Mes", "Total"]));
