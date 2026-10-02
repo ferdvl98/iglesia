@@ -1,20 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, filtroIglesia, puedeConsultarActas } from "@/lib/authz";
-import { TIPO_ACTA_LABEL, TIPOS_ACTA, esTipoActaValido } from "@/lib/tipos-acta";
+import { requireSesion, puedeConsultarActas } from "@/lib/authz";
+import { TIPO_ACTA_LABEL, TIPOS_ACTA } from "@/lib/tipos-acta";
 import { formatearFecha } from "@/lib/fecha";
-import type { Prisma } from "@prisma/client";
-import { normalizar } from "@/lib/busqueda";
+import { construirFiltroActas } from "@/lib/filtros-actas";
 
 const POR_PAGINA = 50;
-
-/** `new Date("abc")` es un Invalid Date que Prisma rechaza con un 500. */
-function fechaValida(valor: string | undefined) {
-  if (!valor) return null;
-  const fecha = new Date(valor);
-  return Number.isNaN(fecha.getTime()) ? null : fecha;
-}
 
 export default async function ActasPage({
   searchParams,
@@ -34,35 +26,7 @@ export default async function ActasPage({
   if (!puedeConsultarActas(sesion)) redirect("/dashboard");
   const params = await searchParams;
 
-  const where: Prisma.ActaWhereInput = { ...filtroIglesia(sesion) };
-
-  if (params.tipo && esTipoActaValido(params.tipo)) {
-    where.tipo = params.tipo;
-  }
-  if (params.q) {
-    // Una sola columna normalizada en vez de seis condiciones OR: encuentra
-    // sin acentos y también por padres, padrinos o testigos.
-    where.textoBusqueda = { contains: normalizar(params.q) };
-  }
-  if (params.numeroActa && /^\d+$/.test(params.numeroActa)) {
-    where.numeroActa = Number(params.numeroActa);
-  }
-  if (params.libro) {
-    where.libro = { equals: params.libro, mode: "insensitive" };
-  }
-  if (params.foja && /^\d+$/.test(params.foja)) {
-    where.foja = Number(params.foja);
-  }
-  // Una fecha mal formada (?desde=abc) llegaba como Invalid Date a Prisma y
-  // tumbaba la página con un 500 en vez de ignorarse.
-  const desde = fechaValida(params.desde);
-  const hasta = fechaValida(params.hasta);
-  if (desde || hasta) {
-    where.fecha = {
-      ...(desde ? { gte: desde } : {}),
-      ...(hasta ? { lte: hasta } : {}),
-    };
-  }
+  const where = construirFiltroActas(sesion, params);
 
   const total = await prisma.acta.count({ where });
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
@@ -126,12 +90,24 @@ export default async function ActasPage({
           <h1 className="text-lg font-semibold text-slate-900">Actas</h1>
           <p className="text-sm text-slate-500">Consulta, filtra y reimprime actas registradas.</p>
         </div>
-        <Link
-          href="/actas/nueva"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Registrar nueva acta
-        </Link>
+        <div className="flex items-center gap-3">
+          {total > 0 && (
+            <Link
+              href={`/api/actas/csv?${new URLSearchParams(
+                Object.entries(params).filter(([, v]) => v) as [string, string][],
+              ).toString()}`}
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Descargar Excel
+            </Link>
+          )}
+          <Link
+            href="/actas/nueva"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Registrar nueva acta
+          </Link>
+        </div>
       </div>
 
       <form className="grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-4">

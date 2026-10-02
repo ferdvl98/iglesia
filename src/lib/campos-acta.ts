@@ -80,3 +80,58 @@ export function comoTexto(valor: unknown): string | null {
   if (valor instanceof Date) return valor.toISOString().slice(0, 10);
   return String(valor);
 }
+
+/**
+ * Cómo se llama cada campo para una persona, no para la base de datos.
+ * Lo usa la exportación, que termina abierta en Excel por la secretaria.
+ */
+const ETIQUETAS: Record<string, string> = {
+  nombreCompleto: "Nombre completo",
+  nombre: "Nombre(s)",
+  apellidos: "Apellidos",
+  sexo: "Sexo",
+  fechaNacimiento: "Fecha de nacimiento",
+  lugarNacimiento: "Lugar de nacimiento",
+  domicilio: "Domicilio",
+  nombrePadre: "Padre",
+  nombreMadre: "Madre",
+  padrino: "Padrino",
+  madrina: "Madrina",
+  catequista: "Catequista",
+  parroquiaBautismo: "Parroquia de bautismo",
+  fechaBautismo: "Fecha de bautismo",
+  libroBautismo: "Libro de bautismo",
+  fojaBautismo: "Foja de bautismo",
+  actaBautismo: "Partida de bautismo",
+  obispoMinistro: "Obispo o ministro",
+  nombreEsposo: "Esposo",
+  fechaNacimientoEsposo: "Fecha de nacimiento del esposo",
+  estadoCivilEsposo: "Estado civil del esposo",
+  edadEsposo: "Edad del esposo",
+  origenEsposo: "Origen del esposo",
+  domicilioEsposo: "Domicilio del esposo",
+  padreEsposo: "Padre del esposo",
+  madreEsposo: "Madre del esposo",
+  nombreEsposa: "Esposa",
+  fechaNacimientoEsposa: "Fecha de nacimiento de la esposa",
+  estadoCivilEsposa: "Estado civil de la esposa",
+  edadEsposa: "Edad de la esposa",
+  origenEsposa: "Origen de la esposa",
+  domicilioEsposa: "Domicilio de la esposa",
+  padreEsposa: "Padre de la esposa",
+  madreEsposa: "Madre de la esposa",
+  testigo1: "Testigo 1",
+  testigo2: "Testigo 2",
+  actaCivilNumero: "No. de acta civil",
+  lugarTramite: "Lugar del trámite",
+};
+
+/**
+ * Si un campo nuevo no tiene etiqueta, se arma una legible a partir de su
+ * nombre en vez de volcar el identificador crudo en la hoja de cálculo.
+ */
+export function etiquetaDeCampo(campo: string): string {
+  if (ETIQUETAS[campo]) return ETIQUETAS[campo];
+  const palabras = campo.replace(/([A-Z])/g, " $1").toLowerCase().trim();
+  return palabras.charAt(0).toUpperCase() + palabras.slice(1);
+}

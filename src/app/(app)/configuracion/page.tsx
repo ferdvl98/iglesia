@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireSesion, puedeConfigurar } from "@/lib/authz";
+import { requireSesion, puedeConfigurar, puedeAdministrarUsuarios } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { ConfiguracionForm } from "./configuracion-form";
 
@@ -81,6 +81,23 @@ export default async function ConfiguracionPage({
         </p>
       </div>
       <ConfiguracionForm configuraciones={configuraciones} />
+
+      {puedeAdministrarUsuarios(sesion) && (
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="text-sm font-semibold text-slate-900">Respaldo del archivo</h2>
+          <p className="mt-1 max-w-prose text-sm text-slate-500">
+            Descarga todas las actas de la parroquia con el detalle completo de cada sacramento,
+            sus correcciones y su historial de impresiones. Guárdalo fuera del sistema: es la
+            copia que permite reconstruir el archivo si se pierde la base de datos.
+          </p>
+          <a
+            href="/api/actas/respaldo"
+            className="mt-3 inline-block rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Descargar respaldo
+          </a>
+        </div>
+      )}
     </div>
   );
 }

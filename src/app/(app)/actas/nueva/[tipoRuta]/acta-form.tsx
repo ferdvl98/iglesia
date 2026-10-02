@@ -80,7 +80,9 @@ export function ActaForm({
   const escribiendoLibroNuevo = libros.length === 0 || libroSeleccionado === NUEVO_LIBRO;
   const libro = escribiendoLibroNuevo ? nuevoLibro.trim() : libroSeleccionado;
   const infoLibroSeleccionado = libros.find((l) => l.libro === libroSeleccionado);
-  const siguientePartida = escribiendoLibroNuevo ? 1 : infoLibroSeleccionado?.siguientePartida ?? 1;
+  const siguientePartida = escribiendoLibroNuevo
+    ? 1
+    : (infoLibroSeleccionado?.siguientePartida ?? 1);
   const partidaEfectiva =
     historico && /^\d+$/.test(partidaManual) ? Number(partidaManual) : siguientePartida;
   const foja = Math.ceil(partidaEfectiva / partidasPorFoja);
@@ -175,95 +177,106 @@ export function ActaForm({
 
       <Seccion titulo="Datos del acta">
         {/* La ubicación en el libro no es un dato corregible: es dónde está
-            asentada la partida. Al corregir, ni se muestra ni se envía. */}
-        <div className={editando ? "hidden" : undefined}>
-          <label className="block text-xs font-medium text-slate-600">
-            Libro <span className="text-red-500">*</span>
-          </label>
-          {libros.length > 0 && (
-            <select
-              value={libroSeleccionado}
-              onChange={(e) => setLibroSeleccionado(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            >
-              {[...libros].reverse().map((l) => (
-                <option key={l.libro} value={l.libro} disabled={l.lleno}>
-                  Libro {l.libro} {l.lleno ? "(lleno)" : `(próxima partida: ${l.siguientePartida})`}
-                </option>
-              ))}
-              <option value={NUEVO_LIBRO}>+ Abrir un libro nuevo</option>
-            </select>
-          )}
-          {escribiendoLibroNuevo && (
-            <input
-              type="text"
-              required
-              autoFocus={libros.length > 0}
-              value={nuevoLibro}
-              onChange={(e) => setNuevoLibro(e.target.value)}
-              placeholder="Número o identificador del libro, ej. 5"
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          )}
-          {libroSeleccionadoLleno && !historico ? (
-            <p className="mt-1 text-xs text-red-600">
-              Este libro ya está lleno. Elige &quot;Abrir un libro nuevo&quot; para continuar.
-            </p>
-          ) : (
-            !historico && (
-              <p className="mt-1 text-xs text-slate-500">
-                Se asignará automáticamente la partida No. {siguientePartida} — Foja {foja},
-                posición {posicion} de {partidasPorFoja}
-              </p>
-            )
-          )}
-
-          <label className="mt-3 flex items-start gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={historico}
-              onChange={(e) => {
-                setHistorico(e.target.checked);
-                if (!e.target.checked) setPartidaManual("");
-              }}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300"
-            />
-            <span>
-              Captura de libro histórico
-              <span className="block text-xs text-slate-500">
-                Para pasar al sistema partidas ya asentadas en los libros. Escribes tú el número
-                tal como aparece en el libro, y no se genera cobro.
-              </span>
-            </span>
-          </label>
-
-          {historico && (
-            <div className="mt-2">
-              <label
-                htmlFor="numeroActaManual"
-                className="block text-xs font-medium text-slate-600"
+            asentada la partida. Al corregir no se renderiza —no basta con
+            ocultarla: el input de libro nuevo es obligatorio, y un campo
+            requerido con display:none bloquea el envío sin mostrar aviso. */}
+        {!editando && (
+          <div>
+            <label className="block text-xs font-medium text-slate-600">
+              Libro <span className="text-red-500">*</span>
+            </label>
+            {libros.length > 0 && (
+              <select
+                value={libroSeleccionado}
+                onChange={(e) => setLibroSeleccionado(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
               >
-                No. de partida en el libro <span className="text-red-500">*</span>
-              </label>
+                {[...libros].reverse().map((l) => (
+                  <option key={l.libro} value={l.libro} disabled={l.lleno}>
+                    Libro {l.libro}{" "}
+                    {l.lleno ? "(lleno)" : `(próxima partida: ${l.siguientePartida})`}
+                  </option>
+                ))}
+                <option value={NUEVO_LIBRO}>+ Abrir un libro nuevo</option>
+              </select>
+            )}
+            {escribiendoLibroNuevo && (
               <input
-                id="numeroActaManual"
-                name="numeroActaManual"
-                type="number"
-                min="1"
+                type="text"
                 required
-                value={partidaManual}
-                onChange={(e) => setPartidaManual(e.target.value)}
-                className="mt-1 w-40 rounded-md border border-slate-300 px-3 py-2 text-sm"
+                autoFocus={libros.length > 0}
+                value={nuevoLibro}
+                onChange={(e) => setNuevoLibro(e.target.value)}
+                placeholder="Número o identificador del libro, ej. 5"
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
               />
-              {/^\d+$/.test(partidaManual) && (
+            )}
+            {libroSeleccionadoLleno && !historico ? (
+              <p className="mt-1 text-xs text-red-600">
+                Este libro ya está lleno. Elige &quot;Abrir un libro nuevo&quot; para continuar.
+              </p>
+            ) : (
+              !historico && (
                 <p className="mt-1 text-xs text-slate-500">
-                  Foja {foja}, posición {posicion} de {partidasPorFoja}
+                  Se asignará automáticamente la partida No. {siguientePartida} — Foja {foja},
+                  posición {posicion} de {partidasPorFoja}
                 </p>
-              )}
-            </div>
-          )}
-        </div>
-        <Campo label="Fecha del sacramento" name="fecha" defaultValue={v("fecha")} type="date" required />
+              )
+            )}
+
+            <label className="mt-3 flex items-start gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={historico}
+                onChange={(e) => {
+                  setHistorico(e.target.checked);
+                  if (!e.target.checked) setPartidaManual("");
+                }}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300"
+              />
+              <span>
+                Captura de libro histórico
+                <span className="block text-xs text-slate-500">
+                  Para pasar al sistema partidas ya asentadas en los libros. Escribes tú el número
+                  tal como aparece en el libro, y no se genera cobro.
+                </span>
+              </span>
+            </label>
+
+            {historico && (
+              <div className="mt-2">
+                <label
+                  htmlFor="numeroActaManual"
+                  className="block text-xs font-medium text-slate-600"
+                >
+                  No. de partida en el libro <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="numeroActaManual"
+                  name="numeroActaManual"
+                  type="number"
+                  min="1"
+                  required
+                  value={partidaManual}
+                  onChange={(e) => setPartidaManual(e.target.value)}
+                  className="mt-1 w-40 rounded-md border border-slate-300 px-3 py-2 text-sm"
+                />
+                {/^\d+$/.test(partidaManual) && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Foja {foja}, posición {posicion} de {partidasPorFoja}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        <Campo
+          label="Fecha del sacramento"
+          name="fecha"
+          defaultValue={v("fecha")}
+          type="date"
+          required
+        />
         <Campo label="Lugar" name="lugar" defaultValue={v("lugar")} />
         <div>
           <label htmlFor="ministroId" className="block text-xs font-medium text-slate-600">
@@ -271,7 +284,8 @@ export function ActaForm({
           </label>
           <select
             id="ministroId"
-            name="ministroId" defaultValue={v("ministroId")}
+            name="ministroId"
+            defaultValue={v("ministroId")}
             value={ministroId}
             onChange={(e) => setMinistroId(e.target.value)}
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -314,7 +328,12 @@ export function ActaForm({
 
       {tipo === "BAUTIZO" && (
         <Seccion titulo="Datos del bautizado">
-          <Campo label="Nombre completo" name="nombreCompleto" defaultValue={v("nombreCompleto")} required />
+          <Campo
+            label="Nombre completo"
+            name="nombreCompleto"
+            defaultValue={v("nombreCompleto")}
+            required
+          />
           <div>
             <label htmlFor="sexo" className="block text-xs font-medium text-slate-600">
               Sexo
@@ -330,8 +349,17 @@ export function ActaForm({
               <option value="FEMENINO">Niña</option>
             </select>
           </div>
-          <Campo label="Fecha de nacimiento" name="fechaNacimiento" defaultValue={v("fechaNacimiento")} type="date" />
-          <Campo label="Lugar de nacimiento" name="lugarNacimiento" defaultValue={v("lugarNacimiento")} />
+          <Campo
+            label="Fecha de nacimiento"
+            name="fechaNacimiento"
+            defaultValue={v("fechaNacimiento")}
+            type="date"
+          />
+          <Campo
+            label="Lugar de nacimiento"
+            name="lugarNacimiento"
+            defaultValue={v("lugarNacimiento")}
+          />
           <Campo label="Domicilio" name="domicilio" defaultValue={v("domicilio")} />
           <Campo label="Nombre del padre" name="nombrePadre" defaultValue={v("nombrePadre")} />
           <Campo label="Nombre de la madre" name="nombreMadre" defaultValue={v("nombreMadre")} />
@@ -360,7 +388,12 @@ export function ActaForm({
                 <option value="FEMENINO">Femenino</option>
               </select>
             </div>
-            <Campo label="Fecha de nacimiento" name="fechaNacimiento" defaultValue={v("fechaNacimiento")} type="date" />
+            <Campo
+              label="Fecha de nacimiento"
+              name="fechaNacimiento"
+              defaultValue={v("fechaNacimiento")}
+              type="date"
+            />
             <Campo label="Nombre del padre" name="nombrePadre" defaultValue={v("nombrePadre")} />
             <Campo label="Nombre de la madre" name="nombreMadre" defaultValue={v("nombreMadre")} />
             <Campo label="Padrino" name="padrino" defaultValue={v("padrino")} />
@@ -368,8 +401,17 @@ export function ActaForm({
             <Campo label="Catequista" name="catequista" defaultValue={v("catequista")} />
           </Seccion>
           <Seccion titulo="Bautismo de referencia">
-            <Campo label="Parroquia donde fue bautizado" name="parroquiaBautismo" defaultValue={v("parroquiaBautismo")} />
-            <Campo label="Fecha de bautismo" name="fechaBautismo" defaultValue={v("fechaBautismo")} type="date" />
+            <Campo
+              label="Parroquia donde fue bautizado"
+              name="parroquiaBautismo"
+              defaultValue={v("parroquiaBautismo")}
+            />
+            <Campo
+              label="Fecha de bautismo"
+              name="fechaBautismo"
+              defaultValue={v("fechaBautismo")}
+              type="date"
+            />
           </Seccion>
         </>
       )}
@@ -377,7 +419,12 @@ export function ActaForm({
       {tipo === "CONFIRMACION" && (
         <>
           <Seccion titulo="Datos del confirmando">
-            <Campo label="Nombre completo" name="nombreCompleto" defaultValue={v("nombreCompleto")} required />
+            <Campo
+              label="Nombre completo"
+              name="nombreCompleto"
+              defaultValue={v("nombreCompleto")}
+              required
+            />
             <div>
               <label htmlFor="sexo" className="block text-xs font-medium text-slate-600">
                 Sexo
@@ -393,20 +440,58 @@ export function ActaForm({
                 <option value="FEMENINO">Femenino</option>
               </select>
             </div>
-            <Campo label="Fecha de nacimiento" name="fechaNacimiento" defaultValue={v("fechaNacimiento")} type="date" />
-            <Campo label="Lugar de nacimiento" name="lugarNacimiento" defaultValue={v("lugarNacimiento")} />
+            <Campo
+              label="Fecha de nacimiento"
+              name="fechaNacimiento"
+              defaultValue={v("fechaNacimiento")}
+              type="date"
+            />
+            <Campo
+              label="Lugar de nacimiento"
+              name="lugarNacimiento"
+              defaultValue={v("lugarNacimiento")}
+            />
             <Campo label="Nombre del padre" name="nombrePadre" defaultValue={v("nombrePadre")} />
             <Campo label="Nombre de la madre" name="nombreMadre" defaultValue={v("nombreMadre")} />
             <Campo label="Padrino" name="padrino" defaultValue={v("padrino")} />
             <Campo label="Madrina" name="madrina" defaultValue={v("madrina")} />
-            <Campo label="Obispo / ministro" name="obispoMinistro" defaultValue={v("obispoMinistro")} />
+            <Campo
+              label="Obispo / ministro"
+              name="obispoMinistro"
+              defaultValue={v("obispoMinistro")}
+            />
           </Seccion>
           <Seccion titulo="Bautismo de referencia">
-            <Campo label="Parroquia donde fue bautizado" name="parroquiaBautismo" defaultValue={v("parroquiaBautismo")} />
-            <Campo label="Fecha de bautismo" name="fechaBautismo" defaultValue={v("fechaBautismo")} type="date" />
-            <Campo label="Libro de bautismos" name="libroBautismo" defaultValue={v("libroBautismo")} />
-            <Campo label="Foja" name="fojaBautismo" defaultValue={v("fojaBautismo")} type="number" min="1" />
-            <Campo label="No. de acta de bautismo" name="actaBautismo" defaultValue={v("actaBautismo")} type="number" min="1" />
+            <Campo
+              label="Parroquia donde fue bautizado"
+              name="parroquiaBautismo"
+              defaultValue={v("parroquiaBautismo")}
+            />
+            <Campo
+              label="Fecha de bautismo"
+              name="fechaBautismo"
+              defaultValue={v("fechaBautismo")}
+              type="date"
+            />
+            <Campo
+              label="Libro de bautismos"
+              name="libroBautismo"
+              defaultValue={v("libroBautismo")}
+            />
+            <Campo
+              label="Foja"
+              name="fojaBautismo"
+              defaultValue={v("fojaBautismo")}
+              type="number"
+              min="1"
+            />
+            <Campo
+              label="No. de acta de bautismo"
+              name="actaBautismo"
+              defaultValue={v("actaBautismo")}
+              type="number"
+              min="1"
+            />
           </Seccion>
         </>
       )}
@@ -414,37 +499,79 @@ export function ActaForm({
       {tipo === "MATRIMONIO" && (
         <>
           <Seccion titulo="Datos del esposo">
-            <Campo label="Nombre completo" name="nombreEsposo" defaultValue={v("nombreEsposo")} required />
-            <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposo" defaultValue={v("fechaNacimientoEsposo")} type="date" />
+            <Campo
+              label="Nombre completo"
+              name="nombreEsposo"
+              defaultValue={v("nombreEsposo")}
+              required
+            />
+            <Campo
+              label="Fecha de nacimiento"
+              name="fechaNacimientoEsposo"
+              defaultValue={v("fechaNacimientoEsposo")}
+              type="date"
+            />
             <Campo
               label="Estado civil"
-              name="estadoCivilEsposo" defaultValue={v("estadoCivilEsposo")}
+              name="estadoCivilEsposo"
+              defaultValue={v("estadoCivilEsposo")}
               hint='Ej. "soltero", "viudo"'
             />
-            <Campo label="Edad" name="edadEsposo" defaultValue={v("edadEsposo")} type="number" min="0" />
+            <Campo
+              label="Edad"
+              name="edadEsposo"
+              defaultValue={v("edadEsposo")}
+              type="number"
+              min="0"
+            />
             <Campo label="Originario de" name="origenEsposo" defaultValue={v("origenEsposo")} />
             <Campo label="Domicilio" name="domicilioEsposo" defaultValue={v("domicilioEsposo")} />
             <Campo label="Nombre del padre" name="padreEsposo" defaultValue={v("padreEsposo")} />
             <Campo label="Nombre de la madre" name="madreEsposo" defaultValue={v("madreEsposo")} />
           </Seccion>
           <Seccion titulo="Datos de la esposa">
-            <Campo label="Nombre completo" name="nombreEsposa" defaultValue={v("nombreEsposa")} required />
-            <Campo label="Fecha de nacimiento" name="fechaNacimientoEsposa" defaultValue={v("fechaNacimientoEsposa")} type="date" />
+            <Campo
+              label="Nombre completo"
+              name="nombreEsposa"
+              defaultValue={v("nombreEsposa")}
+              required
+            />
+            <Campo
+              label="Fecha de nacimiento"
+              name="fechaNacimientoEsposa"
+              defaultValue={v("fechaNacimientoEsposa")}
+              type="date"
+            />
             <Campo
               label="Estado civil"
-              name="estadoCivilEsposa" defaultValue={v("estadoCivilEsposa")}
+              name="estadoCivilEsposa"
+              defaultValue={v("estadoCivilEsposa")}
               hint='Ej. "soltera", "viuda"'
             />
-            <Campo label="Edad" name="edadEsposa" defaultValue={v("edadEsposa")} type="number" min="0" />
+            <Campo
+              label="Edad"
+              name="edadEsposa"
+              defaultValue={v("edadEsposa")}
+              type="number"
+              min="0"
+            />
             <Campo label="Originaria de" name="origenEsposa" defaultValue={v("origenEsposa")} />
-            <Campo label="Domicilio (vecina de)" name="domicilioEsposa" defaultValue={v("domicilioEsposa")} />
+            <Campo
+              label="Domicilio (vecina de)"
+              name="domicilioEsposa"
+              defaultValue={v("domicilioEsposa")}
+            />
             <Campo label="Nombre del padre" name="padreEsposa" defaultValue={v("padreEsposa")} />
             <Campo label="Nombre de la madre" name="madreEsposa" defaultValue={v("madreEsposa")} />
           </Seccion>
           <Seccion titulo="Testigos y acta civil">
             <Campo label="Testigo 1" name="testigo1" defaultValue={v("testigo1")} />
             <Campo label="Testigo 2" name="testigo2" defaultValue={v("testigo2")} />
-            <Campo label="No. de acta civil" name="actaCivilNumero" defaultValue={v("actaCivilNumero")} />
+            <Campo
+              label="No. de acta civil"
+              name="actaCivilNumero"
+              defaultValue={v("actaCivilNumero")}
+            />
             <Campo label="Se tramitó en" name="lugarTramite" defaultValue={v("lugarTramite")} />
           </Seccion>
         </>
@@ -466,7 +593,8 @@ export function ActaForm({
           </label>
           <textarea
             id="observaciones"
-            name="observaciones" defaultValue={v("observaciones")}
+            name="observaciones"
+            defaultValue={v("observaciones")}
             rows={3}
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />

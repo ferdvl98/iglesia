@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSesion, puedeEscribir, puedeConsultarActas } from "@/lib/authz";
 import { TIPO_ACTA_LABEL, TIPO_ACTA_RUTA } from "@/lib/tipos-acta";
+import { etiquetaDeCampo } from "@/lib/campos-acta";
 import { formatearFecha as fmt } from "@/lib/fecha";
 import { obtenerConfiguracion } from "@/lib/configuracion";
 import { AnularActaForm } from "./anular-form";
@@ -157,7 +158,7 @@ export default async function ActaDetallePage({
                       c.cambios as Record<string, { antes: string | null; despues: string | null }>,
                     ).map(([campo, v]) => (
                       <li key={campo}>
-                        <span className="font-medium text-slate-600">{campo}</span>:{" "}
+                        <span className="font-medium text-slate-600">{etiquetaDeCampo(campo)}</span>:{" "}
                         <span className="line-through">{v.antes ?? "(vacío)"}</span>{" "}
                         → {v.despues ?? "(vacío)"}
                       </li>
