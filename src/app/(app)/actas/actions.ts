@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ZodError } from "zod";
 import type { TipoActa as TipoActaPrisma, MetodoPago, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSesion, puedeEscribir } from "@/lib/authz";
@@ -20,6 +21,21 @@ export type ResultadoCrearActa = { error: string } | { ok: true; actaId: string 
 const MAX_INTENTOS_ASIGNACION = 5;
 const MENSAJE_SESION_INVALIDA =
   "Tu sesión quedó desactualizada. Cierra sesión (arriba a la derecha) y vuelve a iniciarla.";
+
+/**
+ * Un ZodError trae `message` con el JSON completo de los problemas; mostrarlo
+ * tal cual al capturista no le dice nada. Aquí se arma una frase legible.
+ */
+function mensajeDeError(e: unknown, porDefecto: string) {
+  if (e instanceof ZodError) {
+    const problemas = e.issues.map((i) => {
+      const campo = i.path.join(".");
+      return campo ? `${campo}: ${i.message}` : i.message;
+    });
+    return `Revisa los datos capturados. ${problemas.join("; ")}`;
+  }
+  return e instanceof Error ? e.message : porDefecto;
+}
 
 function esErrorDeUsuarioInvalido(e: unknown) {
   const codigo = e && typeof e === "object" && "code" in e ? (e as { code?: string }).code : null;
@@ -64,14 +80,20 @@ async function resolverMinistro(formData: FormData, iglesiaId: string, textoManu
       : null;
   if (!ministroId) return { ministroId: null, ministroTexto: textoManual };
 
-  const ministro = await prisma.ministro.findUnique({ where: { id: ministroId } });
-  if (!ministro || ministro.iglesiaId !== iglesiaId) return { ministroId: null, ministroTexto: textoManual };
+  const ministro = await prisma.ministro.findUnique({
+    where: { id: ministroId },
+  });
+  if (!ministro || ministro.iglesiaId !== iglesiaId)
+    return { ministroId: null, ministroTexto: textoManual };
 
   const texto = ministro.titulo ? `${ministro.titulo} ${ministro.nombre}` : ministro.nombre;
   return { ministroId: ministro.id, ministroTexto: texto };
 }
 
-async function resolverIglesiaId(sesion: Awaited<ReturnType<typeof requireSesion>>, formData: FormData) {
+async function resolverIglesiaId(
+  sesion: Awaited<ReturnType<typeof requireSesion>>,
+  formData: FormData,
+) {
   if (sesion.esSuperAdmin) {
     const iglesiaId = formData.get("iglesiaId");
     if (!iglesiaId || typeof iglesiaId !== "string") {
@@ -83,15 +105,27 @@ async function resolverIglesiaId(sesion: Awaited<ReturnType<typeof requireSesion
   return sesion.iglesiaId;
 }
 
-/** Libros ya usados para un tipo de acta en una iglesia, con la próxima partida disponible en cada uno. */
+/**
+ * Libros ya usados para un tipo de acta en una iglesia, con la próxima partida
+ * disponible en cada uno.
+ *
+ * Al estar exportada de un archivo "use server" esto es un endpoint: el
+ * `iglesiaId` que llega es un dato del cliente, no una garantía. Solo el
+ * SUPERADMIN puede consultar una parroquia distinta a la suya.
+ */
 export async function obtenerLibrosExistentes(iglesiaId: string, tipo: TipoActaPrisma) {
+  const sesion = await requireSesion();
+  if (!puedeEscribir(sesion)) return [];
+  const iglesiaConsultada = sesion.esSuperAdmin ? iglesiaId : sesion.iglesiaId;
+  if (!iglesiaConsultada) return [];
+
   const [libros, config] = await Promise.all([
     prisma.acta.groupBy({
       by: ["libro"],
-      where: { iglesiaId, tipo },
+      where: { iglesiaId: iglesiaConsultada, tipo },
       _max: { numeroActa: true },
     }),
-    obtenerConfiguracion(iglesiaId, tipo),
+    obtenerConfiguracion(iglesiaConsultada, tipo),
   ]);
 
   return libros
@@ -154,35 +188,41 @@ async function crearActaConUbicacion(opts: {
     const { foja, posicionEnFoja } = calcularUbicacion(numeroActa, config.partidasPorFoja);
 
     try {
-      const acta = await prisma.acta.create({
-        data: {
-          tipo: opts.tipo,
-          iglesia: { connect: { id: opts.iglesiaId } },
-          libro: opts.libro,
-          numeroActa,
-          foja,
-          posicionEnFoja,
-          fecha: opts.fecha,
-          lugar: opts.lugar,
-          ministro: opts.ministro,
-          ministroRegistro: opts.ministroId ? { connect: { id: opts.ministroId } } : undefined,
-          observaciones: opts.observaciones,
-          creadoPor: { connect: { id: opts.creadoPorId } },
-          ...opts.detalle,
-        },
-      });
-
-      if (requierePago && opts.metodoPago) {
-        await prisma.pago.create({
+      // El acta y su cobro se crean juntos o no se crean: antes, si fallaba el
+      // pago, el acta ya había quedado registrada sin cobro asociado.
+      const acta = await prisma.$transaction(async (tx) => {
+        const acta = await tx.acta.create({
           data: {
-            actaId: acta.id,
-            concepto: "REGISTRO",
-            monto: config.precioRegistro!,
-            metodo: opts.metodoPago,
-            cobradoPorId: opts.creadoPorId,
+            tipo: opts.tipo,
+            iglesia: { connect: { id: opts.iglesiaId } },
+            libro: opts.libro,
+            numeroActa,
+            foja,
+            posicionEnFoja,
+            fecha: opts.fecha,
+            lugar: opts.lugar,
+            ministro: opts.ministro,
+            ministroRegistro: opts.ministroId ? { connect: { id: opts.ministroId } } : undefined,
+            observaciones: opts.observaciones,
+            creadoPor: { connect: { id: opts.creadoPorId } },
+            ...opts.detalle,
           },
         });
-      }
+
+        if (requierePago && opts.metodoPago) {
+          await tx.pago.create({
+            data: {
+              actaId: acta.id,
+              concepto: "REGISTRO",
+              monto: config.precioRegistro!,
+              metodo: opts.metodoPago,
+              cobradoPorId: opts.creadoPorId,
+            },
+          });
+        }
+
+        return acta;
+      });
 
       return acta;
     } catch (e) {
@@ -191,9 +231,7 @@ async function crearActaConUbicacion(opts: {
         e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002";
       if (!esConflicto) throw e;
       if (intento === MAX_INTENTOS_ASIGNACION - 1) {
-        throw new Error(
-          "No se pudo asignar un número de partida disponible, intenta de nuevo.",
-        );
+        throw new Error("No se pudo asignar un número de partida disponible, intenta de nuevo.");
       }
       // otra captura tomó ese número justo ahora: reintentar con el siguiente
     }
@@ -446,9 +484,7 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
       actaId = acta.id;
     }
   } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : "No se pudo registrar el acta.",
-    };
+    return { error: mensajeDeError(e, "No se pudo registrar el acta.") };
   }
 
   revalidatePath("/actas");
@@ -479,15 +515,29 @@ export async function actualizarNotasMarginalesAction(
   if (!sesion.esSuperAdmin && acta.iglesiaId !== sesion.iglesiaId) {
     return { error: "No tienes acceso a esta acta." };
   }
+  // La UI esconde el botón de anular cuando ya lo está, pero no el de notas.
+  if (acta.anulada) {
+    return { error: "No se puede editar un acta anulada." };
+  }
 
   const notasLimpias = limpiar(typeof notas === "string" ? notas : null);
 
   try {
-    if (acta.bautizo) {
-      await prisma.bautizo.update({ where: { actaId }, data: { notasMarginales: notasLimpias } });
-    } else {
-      await prisma.confirmacion.update({ where: { actaId }, data: { notasMarginales: notasLimpias } });
-    }
+    await prisma.$transaction([
+      acta.bautizo
+        ? prisma.bautizo.update({
+            where: { actaId },
+            data: { notasMarginales: notasLimpias },
+          })
+        : prisma.confirmacion.update({
+            where: { actaId },
+            data: { notasMarginales: notasLimpias },
+          }),
+      prisma.acta.update({
+        where: { id: actaId },
+        data: { actualizadoPorId: sesion.id },
+      }),
+    ]);
   } catch (e) {
     if (esErrorDeUsuarioInvalido(e)) return { error: MENSAJE_SESION_INVALIDA };
     throw e;
@@ -497,7 +547,7 @@ export async function actualizarNotasMarginalesAction(
   return null;
 }
 
-export async function anularActa(actaId: string, motivo: string) {
+async function anularActa(actaId: string, motivo: string) {
   const sesion = await requireSesion();
   if (!puedeEscribir(sesion)) throw new Error("No tienes permiso para anular actas.");
 
@@ -506,10 +556,17 @@ export async function anularActa(actaId: string, motivo: string) {
   if (!sesion.esSuperAdmin && acta.iglesiaId !== sesion.iglesiaId) {
     throw new Error("No tienes acceso a esta acta.");
   }
+  // Volver a anular sobrescribiría el motivo y la fecha de la anulación original.
+  if (acta.anulada) throw new Error("Esta acta ya estaba anulada.");
 
   await prisma.acta.update({
     where: { id: actaId },
-    data: { anulada: true, motivoAnulacion: motivo || "Sin especificar" },
+    data: {
+      anulada: true,
+      motivoAnulacion: motivo || "Sin especificar",
+      fechaAnulacion: new Date(),
+      anuladoPorId: sesion.id,
+    },
   });
 
   revalidatePath(`/actas/${actaId}`);
@@ -526,7 +583,7 @@ export async function anularActaAction(
   try {
     await anularActa(actaId, typeof motivo === "string" ? motivo : "");
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "No se pudo anular el acta." };
+    return { error: mensajeDeError(e, "No se pudo anular el acta.") };
   }
   return null;
 }
@@ -537,6 +594,8 @@ export async function registrarPagoReimpresion(
   formData: FormData,
 ): Promise<EstadoFormulario> {
   const sesion = await requireSesion();
+  if (!puedeEscribir(sesion)) return { error: "No tienes permiso para reimprimir actas." };
+
   const actaId = formData.get("actaId");
   const metodoTexto = formData.get("metodoPago");
   if (typeof actaId !== "string") return { error: "Acta inválida." };

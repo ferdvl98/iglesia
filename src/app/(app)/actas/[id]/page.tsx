@@ -38,6 +38,12 @@ export default async function ActaDetallePage({
       confirmacion: true,
       matrimonio: true,
       creadoPor: true,
+      anuladoPor: true,
+      impresiones: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { impresoPor: { select: { nombre: true } } },
+      },
     },
   });
 
@@ -71,7 +77,13 @@ export default async function ActaDetallePage({
 
       {acta.anulada && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Esta acta fue anulada. Motivo: {acta.motivoAnulacion}
+          <p>Esta acta fue anulada. Motivo: {acta.motivoAnulacion}</p>
+          {(acta.anuladoPor || acta.fechaAnulacion) && (
+            <p className="mt-1 text-red-600">
+              {acta.anuladoPor ? `Anulada por ${acta.anuladoPor.nombre}` : "Anulada"}
+              {acta.fechaAnulacion ? ` el ${fmt(acta.fechaAnulacion)}` : ""}.
+            </p>
+          )}
         </div>
       )}
 
@@ -93,6 +105,22 @@ export default async function ActaDetallePage({
         {acta.observaciones && (
           <div className="mt-4">
             <Fila label="Observaciones" value={acta.observaciones} />
+          </div>
+        )}
+
+        {acta.impresiones.length > 0 && (
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Últimas impresiones
+            </p>
+            <ul className="mt-1 space-y-0.5 text-sm text-slate-700">
+              {acta.impresiones.map((imp) => (
+                <li key={imp.id}>
+                  {fmt(imp.createdAt)}
+                  {imp.impresoPor ? ` — ${imp.impresoPor.nombre}` : ""}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

@@ -19,6 +19,7 @@ enum Permiso {
   ADMINISTRAR_CATALOGO // catálogo, ajuste de inventario, transferencia de inventario
   CONFIGURAR // precios de registro/reimpresión por tipo de acta
   ADMINISTRAR_MINISTROS // catálogo de sacerdotes/ministros
+  VER_INGRESOS // reportes de ingresos del dashboard y sus descargas
 }
 
 enum TipoActa {
@@ -64,6 +65,7 @@ model Iglesia {
   updatedAt DateTime @updatedAt
 
   usuarios       Usuario[]
+  roles     Rol[]
   actas          Acta[]
   configuraciones ConfiguracionActa[]
   productos      Producto[]
@@ -289,14 +291,22 @@ model ConfiguracionActa {
  * todos los permisos, y no se puede borrar ni degradar). */
 model Rol {
   id              String    @id @default(cuid())
-  nombre          String    @unique
+  nombre          String
   esAdministrador Boolean   @default(false)
   permisos        Permiso[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  // Un rol pertenece a una parroquia. `null` es una plantilla a nivel diócesis
+  // que solo el SUPERADMIN administra (ahí vive el rol Administrador fijo).
+  // Antes los roles eran globales y cualquier administrador de parroquia podía
+  // editar o borrar el rol que usaban los usuarios de otra.
+  iglesiaId String?
+  iglesia   Iglesia? @relation(fields: [iglesiaId], references: [id], onDelete: Cascade)
+
   usuarios Usuario[]
 
+  @@unique([iglesiaId, nombre])
   @@map("roles")
 }
 
@@ -309,6 +319,10 @@ model Usuario {
   // configurables: ve y administra todas las iglesias.
   esSuperAdmin Boolean  @default(false)
   activo       Boolean  @default(true)
+  // Freno a la fuerza bruta en el login. Va en la base y no en memoria porque
+  // en serverless cada instancia tendría su propio contador.
+  intentosFallidos Int      @default(0)
+  bloqueadoHasta   DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -319,7 +333,10 @@ model Usuario {
   iglesia   Iglesia? @relation(fields: [iglesiaId], references: [id])
 
   actasCreadas Acta[] @relation("ActaCreadaPor")
+  actasAnuladas Acta[] @relation("ActaAnuladaPor")
+  actasActualizadas Acta[] @relation("ActaActualizadaPor")
   pagosCobrados Pago[]
+  impresionesActa ImpresionActa[]
   ventasRealizadas Venta[]
   ajustesInventarioRealizados AjusteInventario[]
   transferenciasRealizadas TransferenciaInventario[]
@@ -367,6 +384,15 @@ model Acta {
   observaciones String?
   anulada      Boolean   @default(false)
   motivoAnulacion String?
+  // Un libro parroquial tiene que poder responder quién anuló una partida y
+  // cuándo; `anulada`/`motivoAnulacion` por sí solos no dejan rastro.
+  fechaAnulacion DateTime?
+  anuladoPorId String?
+  anuladoPor   Usuario? @relation("ActaAnuladaPor", fields: [anuladoPorId], references: [id])
+  // Último usuario que modificó el acta después de registrarla (hoy, las
+  // notas marginales). El cuándo lo da `updatedAt`.
+  actualizadoPorId String?
+  actualizadoPor   Usuario? @relation("ActaActualizadaPor", fields: [actualizadoPorId], references: [id])
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -381,11 +407,31 @@ model Acta {
   confirmacion     Confirmacion?
   matrimonio       Matrimonio?
   pagos            Pago[]
+  impresiones      ImpresionActa[]
 
   @@unique([iglesiaId, tipo, libro, numeroActa])
   @@index([iglesiaId, tipo])
   @@index([iglesiaId, tipo, libro, foja])
   @@map("actas")
+}
+
+/**
+ * Bitácora de impresiones del acta. La ruta del PDF escribe aquí en cada
+ * entrega, de modo que queda rastro aunque la reimpresión sea gratuita o
+ * aunque se llegue al PDF escribiendo la URL en vez de usar el botón.
+ */
+model ImpresionActa {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  actaId String
+  acta   Acta   @relation(fields: [actaId], references: [id], onDelete: Cascade)
+
+  impresoPorId String?
+  impresoPor   Usuario? @relation(fields: [impresoPorId], references: [id])
+
+  @@index([actaId])
+  @@map("impresiones_acta")
 }
 
 model Pago {
