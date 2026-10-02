@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
-import { requireSesion } from "@/lib/authz";
+import { obtenerSesion, puedeUsarPuntoDeVenta } from "@/lib/authz";
 import { VentaPdfDocument } from "@/lib/pdf/venta-pdf";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  let sesion;
-  try {
-    sesion = await requireSesion();
-  } catch {
+  const sesion = await obtenerSesion();
+  if (!sesion) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+  if (!puedeUsarPuntoDeVenta(sesion)) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
   const venta = await prisma.venta.findUnique({

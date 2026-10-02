@@ -1,7 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { rutaATipo, TIPO_ACTA_LABEL } from "@/lib/tipos-acta";
-import { requireSesion, puedeConfigurar, puedeAdministrarMinistros } from "@/lib/authz";
+import {
+  requireSesion,
+  puedeEscribir,
+  puedeConfigurar,
+  puedeAdministrarMinistros,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { obtenerConfiguracion } from "@/lib/configuracion";
 import { obtenerLibrosExistentes } from "../../actions";
@@ -17,6 +22,10 @@ export default async function NuevaActaTipoPage({
   if (!tipo) notFound();
 
   const sesion = await requireSesion();
+  // crearActa ya lo bloquea, pero sin esto el formulario y el catálogo de
+  // sacerdotes quedaban visibles para quien no puede registrar actas.
+  if (!puedeEscribir(sesion)) redirect("/actas");
+
   const iglesias =
     sesion.esSuperAdmin
       ? await prisma.iglesia.findMany({ where: { activa: true }, orderBy: { nombre: "asc" } })
