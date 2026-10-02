@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeAdministrarRoles } from "@/lib/authz";
+import {
+  requireSesion,
+  puedeAdministrarRoles,
+  filtroRoles,
+  puedeEditarRol,
+} from "@/lib/authz";
 import { PERMISOS_LABEL } from "./rol-form";
 import { EliminarRolBoton } from "./eliminar-rol-boton";
 
@@ -10,6 +15,7 @@ export default async function RolesPage() {
   if (!puedeAdministrarRoles(sesion)) redirect("/dashboard");
 
   const roles = await prisma.rol.findMany({
+    where: filtroRoles(sesion),
     orderBy: [{ esAdministrador: "desc" }, { nombre: "asc" }],
     include: { _count: { select: { usuarios: true } } },
   });
@@ -21,7 +27,8 @@ export default async function RolesPage() {
           <h1 className="text-lg font-semibold text-slate-900">Roles</h1>
           <p className="text-sm text-slate-500">
             Define qué puede hacer cada rol y asígnalo a los usuarios. El rol Administrador
-            siempre existe y tiene todos los permisos.
+            siempre existe y tiene todos los permisos. Los marcados como
+            Diócesis son plantillas que solo edita el administrador general.
           </p>
         </div>
         <Link
@@ -52,6 +59,11 @@ export default async function RolesPage() {
                       Fijo
                     </span>
                   )}
+                  {rol.iglesiaId === null && !rol.esAdministrador && (
+                    <span className="ml-2 rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-600">
+                      Diócesis
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-2 text-slate-600">
                   {rol.esAdministrador
@@ -61,7 +73,7 @@ export default async function RolesPage() {
                 <td className="px-4 py-2">{rol._count.usuarios}</td>
                 <td className="px-4 py-2 text-right">
                   <div className="flex items-center justify-end gap-3">
-                    {!rol.esAdministrador && (
+                    {!rol.esAdministrador && puedeEditarRol(sesion, rol) && (
                       <>
                         <Link href={`/roles/${rol.id}`} className="text-slate-600 hover:underline">
                           Editar

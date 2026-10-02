@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeAdministrarRoles } from "@/lib/authz";
+import { requireSesion, puedeAdministrarRoles, puedeEditarRol } from "@/lib/authz";
 import { actualizarRol } from "../actions";
 import { RolForm } from "../rol-form";
 
@@ -11,6 +11,9 @@ export default async function EditarRolPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const rol = await prisma.rol.findUnique({ where: { id } });
   if (!rol) notFound();
+  // El listado ya no muestra los roles de otras parroquias, pero la URL directa
+  // sí abría el formulario con su nombre y sus permisos.
+  if (!puedeEditarRol(sesion, rol)) notFound();
   if (rol.esAdministrador) redirect("/roles");
 
   return (

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireSesion, puedeAdministrarUsuarios } from "@/lib/authz";
+import { requireSesion, puedeAdministrarUsuarios, filtroRoles } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { UsuarioForm } from "./usuario-form";
 
@@ -11,7 +11,7 @@ export default async function NuevoUsuarioPage() {
     sesion.esSuperAdmin
       ? prisma.iglesia.findMany({ where: { activa: true }, orderBy: { nombre: "asc" } })
       : Promise.resolve([]),
-    prisma.rol.findMany({ orderBy: { nombre: "asc" } }),
+    prisma.rol.findMany({ where: filtroRoles(sesion), orderBy: { nombre: "asc" } }),
   ]);
 
   return (

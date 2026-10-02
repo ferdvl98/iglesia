@@ -10,6 +10,7 @@ export const PERMISOS_LABEL: Record<Permiso, string> = {
   PUNTO_DE_VENTA: "Vender en el punto de venta",
   ADMINISTRAR_CATALOGO: "Administrar catálogo, ajustes y transferencias de inventario",
   CONFIGURAR: "Configurar precios de actas",
+  VER_INGRESOS: "Ver los reportes de ingresos y descargarlos",
   ADMINISTRAR_MINISTROS: "Administrar el catálogo de sacerdotes/ministros",
 };
 

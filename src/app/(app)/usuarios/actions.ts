@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeAdministrarUsuarios } from "@/lib/authz";
+import { requireSesion, puedeAdministrarUsuarios, puedeAsignarRol } from "@/lib/authz";
 
 export type EstadoFormulario = { error: string } | null;
 
@@ -29,6 +29,11 @@ export async function crearUsuario(
     if (!rolId) return { error: "Selecciona un rol para este usuario." };
     const rol = await prisma.rol.findUnique({ where: { id: rolId } });
     if (!rol) return { error: "El rol seleccionado no es válido." };
+    // Antes bastaba con que el rol existiera: el administrador de una parroquia
+    // podía asignar un rol de otra, con los permisos que esa otra le hubiera puesto.
+    if (!puedeAsignarRol(sesion, rol)) {
+      return { error: "Ese rol no está disponible para tu parroquia." };
+    }
 
     if (sesion.esSuperAdmin) {
       if (!formData.get("iglesiaId")) return { error: "Selecciona una iglesia para este usuario." };
@@ -86,6 +91,9 @@ export async function cambiarRolUsuario(usuarioId: string, rolId: string) {
 
   const rol = await prisma.rol.findUnique({ where: { id: rolId } });
   if (!rol) throw new Error("El rol seleccionado no es válido.");
+  if (!puedeAsignarRol(sesion, rol)) {
+    throw new Error("Ese rol no está disponible para tu parroquia.");
+  }
 
   await prisma.usuario.update({ where: { id: usuarioId }, data: { rolId } });
   revalidatePath("/usuarios");

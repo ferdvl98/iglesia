@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeAdministrarRoles } from "@/lib/authz";
+import { requireSesion, puedeAdministrarRoles, puedeEditarRol } from "@/lib/authz";
 import type { Permiso } from "@prisma/client";
 
 const PERMISOS_VALIDOS: Permiso[] = [
@@ -12,6 +12,7 @@ const PERMISOS_VALIDOS: Permiso[] = [
   "PUNTO_DE_VENTA",
   "ADMINISTRAR_CATALOGO",
   "CONFIGURAR",
+  "VER_INGRESOS",
 ];
 
 export type EstadoFormulario = { error: string } | null;
@@ -30,12 +31,19 @@ export async function crearRol(
   const nombre = (formData.get("nombre") as string)?.trim();
   if (!nombre) return { error: "El nombre del rol es obligatorio." };
 
-  const existente = await prisma.rol.findUnique({ where: { nombre } });
+  // El SUPERADMIN crea plantillas de diócesis; el administrador de una
+  // parroquia crea roles de su parroquia y de ninguna otra.
+  const iglesiaId = sesion.esSuperAdmin ? null : sesion.iglesiaId;
+  if (!sesion.esSuperAdmin && !iglesiaId) {
+    return { error: "Tu usuario no tiene una parroquia asignada." };
+  }
+
+  const existente = await prisma.rol.findFirst({ where: { nombre, iglesiaId } });
   if (existente) return { error: "Ya existe un rol con ese nombre." };
 
   const permisos = parsearPermisos(formData);
 
-  await prisma.rol.create({ data: { nombre, permisos } });
+  await prisma.rol.create({ data: { nombre, permisos, iglesiaId } });
 
   revalidatePath("/roles");
   redirect("/roles");
@@ -51,6 +59,12 @@ export async function actualizarRol(
   const rolId = formData.get("rolId") as string;
   const rol = await prisma.rol.findUnique({ where: { id: rolId } });
   if (!rol) return { error: "Rol no encontrado." };
+  if (!puedeEditarRol(sesion, rol)) {
+    return {
+      error:
+        "Este rol no es de tu parroquia. Las plantillas de la diócesis solo las edita el administrador general.",
+    };
+  }
   if (rol.esAdministrador) {
     return { error: "El rol Administrador siempre tiene todos los permisos y no se puede modificar." };
   }
@@ -58,7 +72,9 @@ export async function actualizarRol(
   const nombre = (formData.get("nombre") as string)?.trim();
   if (!nombre) return { error: "El nombre del rol es obligatorio." };
 
-  const existente = await prisma.rol.findUnique({ where: { nombre } });
+  const existente = await prisma.rol.findFirst({
+    where: { nombre, iglesiaId: rol.iglesiaId },
+  });
   if (existente && existente.id !== rolId) return { error: "Ya existe un rol con ese nombre." };
 
   const permisos = parsearPermisos(formData);
@@ -75,6 +91,9 @@ export async function eliminarRol(rolId: string) {
 
   const rol = await prisma.rol.findUnique({ where: { id: rolId }, include: { usuarios: true } });
   if (!rol) throw new Error("Rol no encontrado.");
+  if (!puedeEditarRol(sesion, rol)) {
+    throw new Error("Este rol no es de tu parroquia.");
+  }
   if (rol.esAdministrador) throw new Error("El rol Administrador no se puede eliminar.");
   if (rol.usuarios.length > 0) {
     throw new Error("No puedes eliminar un rol que tiene usuarios asignados. Reasígnalos primero.");

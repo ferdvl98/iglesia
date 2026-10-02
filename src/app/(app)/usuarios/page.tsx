@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeAdministrarUsuarios, filtroIglesia } from "@/lib/authz";
+import { requireSesion, puedeAdministrarUsuarios, filtroIglesia, filtroRoles } from "@/lib/authz";
 import { EstadoUsuarioToggle } from "./estado-toggle";
 import { RolSelect } from "./rol-select";
 
@@ -17,7 +17,7 @@ export default async function UsuariosPage() {
       orderBy: { nombre: "asc" },
       include: { iglesia: true, rol: true },
     }),
-    prisma.rol.findMany({ orderBy: { nombre: "asc" } }),
+    prisma.rol.findMany({ where: filtroRoles(sesion), orderBy: { nombre: "asc" } }),
   ]);
 
   return (
