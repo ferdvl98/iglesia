@@ -14,6 +14,7 @@ import {
 import { esTipoActaValido } from "@/lib/tipos-acta";
 import { calcularUbicacion, libroLleno, partidasPorLibro } from "@/lib/libro";
 import { obtenerConfiguracion } from "@/lib/configuracion";
+import { textoBusquedaDeDetalle } from "@/lib/busqueda";
 
 export type EstadoFormulario = { error: string } | null;
 export type ResultadoCrearActa = { error: string } | { ok: true; actaId: string };
@@ -205,6 +206,7 @@ async function crearActaConUbicacion(opts: {
             ministroRegistro: opts.ministroId ? { connect: { id: opts.ministroId } } : undefined,
             observaciones: opts.observaciones,
             creadoPor: { connect: { id: opts.creadoPorId } },
+            textoBusqueda: textoBusquedaDeDetalle(opts.detalle),
             ...opts.detalle,
           },
         });

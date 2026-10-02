@@ -385,6 +385,10 @@ model Acta {
   ministroId   String?
   ministroRegistro Ministro? @relation(fields: [ministroId], references: [id])
   observaciones String?
+  // Todos los nombres del acta —titular, padres, padrinos, testigos— en
+  // minúsculas y sin acentos, para que el buscador encuentre "José Muñoz"
+  // escribiendo "jose munoz". Se rellena al crear y al corregir el acta.
+  textoBusqueda String?
   anulada      Boolean   @default(false)
   motivoAnulacion String?
   // Un libro parroquial tiene que poder responder quién anuló una partida y

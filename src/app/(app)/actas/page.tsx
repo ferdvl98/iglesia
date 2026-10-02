@@ -5,6 +5,7 @@ import { requireSesion, filtroIglesia, puedeConsultarActas } from "@/lib/authz";
 import { TIPO_ACTA_LABEL, TIPOS_ACTA, esTipoActaValido } from "@/lib/tipos-acta";
 import { formatearFecha } from "@/lib/fecha";
 import type { Prisma } from "@prisma/client";
+import { normalizar } from "@/lib/busqueda";
 
 const POR_PAGINA = 50;
 
@@ -39,38 +40,9 @@ export default async function ActasPage({
     where.tipo = params.tipo;
   }
   if (params.q) {
-    where.OR = [
-      {
-        bautizo: {
-          nombreCompleto: { contains: params.q, mode: "insensitive" },
-        },
-      },
-      {
-        primeraComunion: {
-          nombre: { contains: params.q, mode: "insensitive" },
-        },
-      },
-      {
-        primeraComunion: {
-          apellidos: { contains: params.q, mode: "insensitive" },
-        },
-      },
-      {
-        confirmacion: {
-          nombreCompleto: { contains: params.q, mode: "insensitive" },
-        },
-      },
-      {
-        matrimonio: {
-          nombreEsposo: { contains: params.q, mode: "insensitive" },
-        },
-      },
-      {
-        matrimonio: {
-          nombreEsposa: { contains: params.q, mode: "insensitive" },
-        },
-      },
-    ];
+    // Una sola columna normalizada en vez de seis condiciones OR: encuentra
+    // sin acentos y también por padres, padrinos o testigos.
+    where.textoBusqueda = { contains: normalizar(params.q) };
   }
   if (params.numeroActa && /^\d+$/.test(params.numeroActa)) {
     where.numeroActa = Number(params.numeroActa);
