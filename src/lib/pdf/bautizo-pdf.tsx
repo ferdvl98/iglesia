@@ -87,7 +87,10 @@ export function BautizoActaPdf({ acta }: { acta: ActaBautizo }) {
   const { dia, mes, anio } = partesFecha(acta.fecha);
   const b = acta.bautizo;
   const nacimiento = partesFecha(b.fechaNacimiento);
-  const niñoNiña = b.sexo === "FEMENINO" ? "niña" : b.sexo === "MASCULINO" ? "niño" : "niño(a)";
+  // El artículo va junto al sustantivo: "a un niño" / "a una niña". Separados,
+  // el acta de una niña salía impresa como "bauticé solemnemente a un niña".
+  const aUnNiñoNiña =
+    b.sexo === "FEMENINO" ? "a una niña" : b.sexo === "MASCULINO" ? "a un niño" : "a un(a) niño(a)";
   const hijoHija = b.sexo === "FEMENINO" ? "hija" : b.sexo === "MASCULINO" ? "hijo" : "hijo(a)";
 
   return (
@@ -102,7 +105,7 @@ export function BautizoActaPdf({ acta }: { acta: ActaBautizo }) {
             <Text>
               En la Parroquia de <Dato valor={acta.lugar || acta.iglesia.nombre} />, el día{" "}
               <Dato valor={dia} /> de <Dato valor={mes} /> de <Dato valor={anio} />, yo, el{" "}
-              <Dato valor={acta.ministro} />, bauticé solemnemente a un {niñoNiña} que nació el día{" "}
+              <Dato valor={acta.ministro} />, bauticé solemnemente {aUnNiñoNiña} que nació el día{" "}
               <Dato valor={nacimiento.dia} /> de <Dato valor={nacimiento.mes} /> de{" "}
               <Dato valor={nacimiento.anio} /> en <Dato valor={b.lugarNacimiento} />, y con domicilio en:{" "}
               <Dato valor={b.domicilio} />, a quien puse por nombre <Dato valor={b.nombreCompleto} />,{" "}
