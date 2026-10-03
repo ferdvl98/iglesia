@@ -586,5 +586,9 @@ model Matrimonio {
   actaCivilNumero        String?
   lugarTramite           String? // dónde se tramitó (oficialía / registro civil)
 
+  // Anotaciones posteriores: declaración de nulidad, dispensas. Canónicamente
+  // el acta de matrimonio también las recibe al margen.
+  notasMarginales        String?
+
   @@map("matrimonios")
 }

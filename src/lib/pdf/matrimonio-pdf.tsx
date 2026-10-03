@@ -181,6 +181,13 @@ export function MatrimonioActaPdf({ acta, qr }: { acta: ActaMatrimonio; qr: stri
           </View>
         )}
 
+        {m.notasMarginales && (
+          <View style={{ marginTop: 28, borderTop: "1px solid #cbd5e1", paddingTop: 10 }}>
+            <Text style={{ fontSize: 9, fontWeight: 700, marginBottom: 3 }}>Notas marginales</Text>
+            <Text style={{ fontSize: 10 }}>{m.notasMarginales}</Text>
+          </View>
+        )}
+
         {acta.anulada && (
           <Text style={styles.aviso}>
             ACTA ANULADA — Motivo: {acta.motivoAnulacion || "Sin especificar"}

@@ -158,9 +158,9 @@ export default async function ActaDetallePage({
                       c.cambios as Record<string, { antes: string | null; despues: string | null }>,
                     ).map(([campo, v]) => (
                       <li key={campo}>
-                        <span className="font-medium text-slate-600">{etiquetaDeCampo(campo)}</span>:{" "}
-                        <span className="line-through">{v.antes ?? "(vacío)"}</span>{" "}
-                        → {v.despues ?? "(vacío)"}
+                        <span className="font-medium text-slate-600">{etiquetaDeCampo(campo)}</span>
+                        : <span className="line-through">{v.antes ?? "(vacío)"}</span> →{" "}
+                        {v.despues ?? "(vacío)"}
                       </li>
                     ))}
                   </ul>
@@ -242,7 +242,10 @@ export default async function ActaDetallePage({
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Datos del confirmando</h2>
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Fila label="Nombre completo" value={acta.confirmacion.nombreCompleto} />
-            <Fila label="Sexo" value={acta.confirmacion.sexo ? SEXO_LABEL[acta.confirmacion.sexo] : null} />
+            <Fila
+              label="Sexo"
+              value={acta.confirmacion.sexo ? SEXO_LABEL[acta.confirmacion.sexo] : null}
+            />
             <Fila label="Fecha de nacimiento" value={fmt(acta.confirmacion.fechaNacimiento)} />
             <Fila label="Lugar de nacimiento" value={acta.confirmacion.lugarNacimiento} />
             <Fila label="Padre" value={acta.confirmacion.nombrePadre} />
@@ -269,9 +272,26 @@ export default async function ActaDetallePage({
             Anotaciones posteriores al registro: si esta persona contrajo matrimonio.
           </p>
           {permisoEscritura ? (
-            <NotasMarginalesForm actaId={acta.id} notasActuales={acta.confirmacion.notasMarginales} />
+            <NotasMarginalesForm
+              actaId={acta.id}
+              notasActuales={acta.confirmacion.notasMarginales}
+            />
           ) : (
             <p className="text-sm text-slate-900">{acta.confirmacion.notasMarginales || "-"}</p>
+          )}
+        </div>
+      )}
+
+      {acta.matrimonio && (
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">Notas marginales</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Anotaciones posteriores al registro: declaración de nulidad o dispensa.
+          </p>
+          {permisoEscritura ? (
+            <NotasMarginalesForm actaId={acta.id} notasActuales={acta.matrimonio.notasMarginales} />
+          ) : (
+            <p className="text-sm text-slate-900">{acta.matrimonio.notasMarginales || "-"}</p>
           )}
         </div>
       )}

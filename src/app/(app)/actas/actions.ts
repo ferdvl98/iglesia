@@ -544,7 +544,7 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
   return { ok: true, actaId };
 }
 
-/** Actualiza las notas marginales de un bautizo o confirmación (anotación
+/** Actualiza las notas marginales de un bautizo, confirmación o matrimonio (anotación
  * posterior de que esa misma persona se confirmó o contrajo matrimonio, con
  * fecha y libro/acta de referencia si aplica). */
 export async function actualizarNotasMarginalesAction(
@@ -560,9 +560,9 @@ export async function actualizarNotasMarginalesAction(
 
   const acta = await prisma.acta.findUnique({
     where: { id: actaId },
-    include: { bautizo: true, confirmacion: true },
+    include: { bautizo: true, confirmacion: true, matrimonio: true },
   });
-  if (!acta || (!acta.bautizo && !acta.confirmacion)) {
+  if (!acta || (!acta.bautizo && !acta.confirmacion && !acta.matrimonio)) {
     return { error: "Esta acta no admite notas marginales." };
   }
   if (!sesion.esSuperAdmin && acta.iglesiaId !== sesion.iglesiaId) {
@@ -578,14 +578,16 @@ export async function actualizarNotasMarginalesAction(
   try {
     await prisma.$transaction([
       acta.bautizo
-        ? prisma.bautizo.update({
-            where: { actaId },
-            data: { notasMarginales: notasLimpias },
-          })
-        : prisma.confirmacion.update({
-            where: { actaId },
-            data: { notasMarginales: notasLimpias },
-          }),
+        ? prisma.bautizo.update({ where: { actaId }, data: { notasMarginales: notasLimpias } })
+        : acta.confirmacion
+          ? prisma.confirmacion.update({
+              where: { actaId },
+              data: { notasMarginales: notasLimpias },
+            })
+          : prisma.matrimonio.update({
+              where: { actaId },
+              data: { notasMarginales: notasLimpias },
+            }),
       prisma.acta.update({
         where: { id: actaId },
         data: { actualizadoPorId: sesion.id },
