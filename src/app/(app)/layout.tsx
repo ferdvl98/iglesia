@@ -9,13 +9,11 @@ import {
   puedeAdministrarCatalogo,
   puedeUsarPuntoDeVenta,
 } from "@/lib/authz";
-import { cerrarSesion } from "./actions";
+import { MenuUsuario } from "./menu-usuario";
 import { MobileNav } from "./mobile-nav";
 import { Footer } from "@/components/footer";
 import { Logo } from "@/components/logo";
 import { CambiarPasswordForm } from "./cambiar-password/form";
-
-const RUTA_CAMBIO_PASSWORD = "/cambiar-password";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const sesion = await requireSesion();
@@ -99,31 +97,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </nav>
       </aside>
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-6">
-          <div className="flex min-w-0 items-center gap-2">
-            <MobileNav links={links} iglesiaNombre={iglesiaNombre} />
-            <div className="min-w-0 truncate text-sm text-slate-600">
-              <span className="font-medium text-slate-900">{sesion.nombre}</span>
-              <span className="mx-2 text-slate-300">|</span>
-              <span>{sesion.esSuperAdmin ? "SUPERADMIN" : sesion.rolNombre}</span>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-4">
-            <Link
-              href={RUTA_CAMBIO_PASSWORD}
-              className="text-sm font-medium text-slate-500 hover:text-slate-900"
-            >
-              Contraseña
-            </Link>
-            <form action={cerrarSesion}>
-              <button
-                type="submit"
-                className="text-sm font-medium text-slate-500 hover:text-slate-900"
-              >
-                Cerrar sesión
-              </button>
-            </form>
-          </div>
+        <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5 md:px-6">
+          <MobileNav links={links} iglesiaNombre={iglesiaNombre} />
+          <MenuUsuario
+            nombre={sesion.nombre ?? ""}
+            rol={sesion.esSuperAdmin ? "SUPERADMIN" : (sesion.rolNombre ?? "Sin rol")}
+          />
         </header>
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
         <Footer />
