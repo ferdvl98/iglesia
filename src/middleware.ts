@@ -4,7 +4,9 @@ import { authConfig } from "@/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const PUBLIC_PATHS = ["/login", "/configuracion-inicial"];
+// "/v" es la verificación pública de actas por folio: quien recibe una
+// constancia impresa no tiene —ni debe tener— una cuenta en el sistema.
+const PUBLIC_PATHS = ["/login", "/configuracion-inicial", "/v/"];
 
 export default auth((req) => {
   const { nextUrl } = req;

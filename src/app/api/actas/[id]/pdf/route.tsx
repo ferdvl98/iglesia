@@ -3,9 +3,10 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { obtenerSesion, puedeConsultarActas } from "@/lib/authz";
 import { ActaPdfDocument } from "@/lib/pdf/acta-pdf";
+import { qrDeVerificacion } from "@/lib/pdf/qr";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -56,7 +57,11 @@ export async function GET(
     );
   }
 
-  const buffer = await renderToBuffer(<ActaPdfDocument acta={acta} />);
+  // El origen sale de la propia petición: cada cliente corre en su dominio, así
+  // que el QR tiene que apuntar al suyo y no a uno fijo.
+  const qr = await qrDeVerificacion(new URL(req.url).origin, acta.folioVerificacion);
+
+  const buffer = await renderToBuffer(<ActaPdfDocument acta={acta} qr={qr} />);
 
   // Queda constancia de cada entrega del PDF: el Pago de REIMPRESION no sirve
   // como bitácora porque no se crea si la reimpresión es gratuita, ni si se

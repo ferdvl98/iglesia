@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { Acta, Iglesia, Matrimonio } from "@prisma/client";
+import { QrVerificacion } from "./qr-verificacion";
 
 type ActaMatrimonio = Acta & { iglesia: Iglesia; matrimonio: Matrimonio };
 
@@ -112,7 +113,7 @@ function Dato({ valor }: { valor: string | number | null | undefined }) {
   return <Text style={styles.dato}>{v(valor)}</Text>;
 }
 
-export function MatrimonioActaPdf({ acta }: { acta: ActaMatrimonio }) {
+export function MatrimonioActaPdf({ acta, qr }: { acta: ActaMatrimonio; qr: string | null }) {
   const { dia, mes, anio } = partesFecha(acta.fecha);
   const m = acta.matrimonio;
   const lugarCivil = m.lugarTramite;
@@ -190,6 +191,7 @@ export function MatrimonioActaPdf({ acta }: { acta: ActaMatrimonio }) {
           Libro {acta.libro} · Foja {acta.foja} · Partida {acta.numeroActa} (posición {acta.posicionEnFoja} de 4) — Documento
           generado el {new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}.
         </Text>
+        <QrVerificacion qr={qr} folio={acta.folioVerificacion} />
       </Page>
     </Document>
   );

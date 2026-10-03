@@ -122,18 +122,24 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string | null | u
   );
 }
 
-export function ActaPdfDocument({ acta }: { acta: ActaCompleta }) {
+export function ActaPdfDocument({
+  acta,
+  qr = null,
+}: {
+  acta: ActaCompleta;
+  qr?: string | null;
+}) {
   if (acta.tipo === "MATRIMONIO" && acta.matrimonio) {
-    return <MatrimonioActaPdf acta={{ ...acta, matrimonio: acta.matrimonio }} />;
+    return <MatrimonioActaPdf acta={{ ...acta, matrimonio: acta.matrimonio }} qr={qr} />;
   }
   if (acta.tipo === "BAUTIZO" && acta.bautizo) {
-    return <BautizoActaPdf acta={{ ...acta, bautizo: acta.bautizo }} />;
+    return <BautizoActaPdf acta={{ ...acta, bautizo: acta.bautizo }} qr={qr} />;
   }
   if (acta.tipo === "CONFIRMACION" && acta.confirmacion) {
-    return <ConfirmacionActaPdf acta={{ ...acta, confirmacion: acta.confirmacion }} />;
+    return <ConfirmacionActaPdf acta={{ ...acta, confirmacion: acta.confirmacion }} qr={qr} />;
   }
   if (acta.tipo === "PRIMERA_COMUNION" && acta.primeraComunion) {
-    return <PrimeraComunionActaPdf acta={{ ...acta, primeraComunion: acta.primeraComunion }} />;
+    return <PrimeraComunionActaPdf acta={{ ...acta, primeraComunion: acta.primeraComunion }} qr={qr} />;
   }
 
   return (

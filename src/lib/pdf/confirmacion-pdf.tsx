@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { Acta, Iglesia, Confirmacion } from "@prisma/client";
+import { QrVerificacion } from "./qr-verificacion";
 
 type ActaConfirmacion = Acta & { iglesia: Iglesia; confirmacion: Confirmacion };
 
@@ -112,7 +113,7 @@ function Dato({ valor }: { valor: string | number | null | undefined }) {
   return <Text style={styles.dato}>{v(valor)}</Text>;
 }
 
-export function ConfirmacionActaPdf({ acta }: { acta: ActaConfirmacion }) {
+export function ConfirmacionActaPdf({ acta, qr }: { acta: ActaConfirmacion; qr: string | null }) {
   const { dia, mes, anio } = partesFecha(acta.fecha);
   const c = acta.confirmacion;
   const nacimiento = partesFecha(c.fechaNacimiento);
@@ -180,6 +181,7 @@ export function ConfirmacionActaPdf({ acta }: { acta: ActaConfirmacion }) {
           Libro {acta.libro} · Foja {acta.foja} · Partida {acta.numeroActa} (posición {acta.posicionEnFoja} de 4) — Documento
           generado el {new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}.
         </Text>
+        <QrVerificacion qr={qr} folio={acta.folioVerificacion} />
       </Page>
     </Document>
   );

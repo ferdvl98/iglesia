@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { Acta, Iglesia, PrimeraComunion } from "@prisma/client";
+import { QrVerificacion } from "./qr-verificacion";
 
 type ActaPrimeraComunion = Acta & { iglesia: Iglesia; primeraComunion: PrimeraComunion };
 
@@ -122,7 +123,7 @@ function Dato({ valor }: { valor: string | number | null | undefined }) {
   return <Text style={styles.dato}>{v(valor)}</Text>;
 }
 
-export function PrimeraComunionActaPdf({ acta }: { acta: ActaPrimeraComunion }) {
+export function PrimeraComunionActaPdf({ acta, qr }: { acta: ActaPrimeraComunion; qr: string | null }) {
   const { dia, mes, anio } = partesFecha(acta.fecha);
   const pc = acta.primeraComunion;
   const nombreCompleto = `${pc.nombre} ${pc.apellidos}`.trim().toUpperCase();
@@ -189,6 +190,7 @@ export function PrimeraComunionActaPdf({ acta }: { acta: ActaPrimeraComunion }) 
           Libro {acta.libro} · Foja {acta.foja} · Partida {acta.numeroActa} (posición {acta.posicionEnFoja} de 4) — Documento
           generado el {new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}.
         </Text>
+        <QrVerificacion qr={qr} folio={acta.folioVerificacion} />
       </Page>
     </Document>
   );
