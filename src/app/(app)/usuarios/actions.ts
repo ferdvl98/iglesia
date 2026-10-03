@@ -3,9 +3,18 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { estadoLicencias, MENSAJE_SIN_CUPO } from "@/lib/licencias";
 import { requireSesion, puedeAdministrarUsuarios, puedeAsignarRol } from "@/lib/authz";
+
+const MENSAJE_SESION_INVALIDA =
+  "Tu sesión quedó desactualizada. Cierra sesión (arriba a la derecha) y vuelve a iniciarla.";
+
+function esErrorDeUsuarioInvalido(e: unknown) {
+  const codigo = e && typeof e === "object" && "code" in e ? (e as { code?: string }).code : null;
+  return codigo === "P2003" || codigo === "P2025";
+}
 
 export type EstadoFormulario = { error: string } | null;
 
@@ -144,4 +153,79 @@ export async function restablecerPassword(usuarioId: string, passwordTemporal: s
   });
 
   revalidatePath("/usuarios");
+}
+
+/**
+ * Edita los datos de un usuario: nombre, correo, rol y, para el SUPERADMIN,
+ * su parroquia.
+ *
+ * La contraseña no se toca aquí: para eso está "Restablecer contraseña", que
+ * además la marca como temporal. Mezclarlas haría que editar un apellido
+ * pudiera cambiar la contraseña de alguien sin querer.
+ */
+export async function actualizarUsuario(
+  _prevState: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const sesion = await requireSesion();
+  if (!puedeAdministrarUsuarios(sesion)) return { error: "No tienes permiso." };
+
+  const usuarioId = formData.get("usuarioId");
+  if (typeof usuarioId !== "string") return { error: "Usuario inválido." };
+
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario) return { error: "Usuario no encontrado." };
+  if (!sesion.esSuperAdmin && usuario.iglesiaId !== sesion.iglesiaId) {
+    return { error: "No tienes acceso a este usuario." };
+  }
+  // Un administrador de parroquia no edita a quien está por encima de él.
+  if (usuario.esSuperAdmin && !sesion.esSuperAdmin) {
+    return { error: "No puedes editar a un SUPERADMIN." };
+  }
+
+  const nombre = (formData.get("nombre") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
+  if (!nombre || !email) return { error: "El nombre y el correo son obligatorios." };
+
+  const otro = await prisma.usuario.findUnique({ where: { email } });
+  if (otro && otro.id !== usuarioId) {
+    return { error: "Ya existe otro usuario con ese correo." };
+  }
+
+  const datos: Prisma.UsuarioUpdateInput = { nombre, email };
+
+  if (usuario.esSuperAdmin) {
+    // Un SUPERADMIN no lleva rol ni parroquia: los ve todos.
+    datos.rol = { disconnect: true };
+    datos.iglesia = { disconnect: true };
+  } else {
+    const rolId = (formData.get("rolId") as string) || null;
+    if (!rolId) return { error: "Selecciona un rol para este usuario." };
+    const rol = await prisma.rol.findUnique({ where: { id: rolId } });
+    if (!rol) return { error: "El rol seleccionado no es válido." };
+    if (!puedeAsignarRol(sesion, rol)) {
+      return { error: "Ese rol no está disponible para tu parroquia." };
+    }
+    datos.rol = { connect: { id: rolId } };
+
+    if (sesion.esSuperAdmin) {
+      const iglesiaId = formData.get("iglesiaId");
+      if (typeof iglesiaId !== "string" || !iglesiaId) {
+        return { error: "Selecciona una iglesia para este usuario." };
+      }
+      datos.iglesia = { connect: { id: iglesiaId } };
+    }
+    // Un administrador de parroquia no puede mover a nadie fuera de la suya:
+    // simplemente no se toca el campo.
+  }
+
+  try {
+    await prisma.usuario.update({ where: { id: usuarioId }, data: datos });
+  } catch (e) {
+    if (esErrorDeUsuarioInvalido(e)) return { error: MENSAJE_SESION_INVALIDA };
+    throw e;
+  }
+
+  revalidatePath("/usuarios");
+  redirect("/usuarios");
 }

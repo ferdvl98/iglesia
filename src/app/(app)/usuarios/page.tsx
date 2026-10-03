@@ -97,6 +97,12 @@ export default async function UsuariosPage() {
                 <td className="px-4 py-2 text-right">
                   {usuario.id !== sesion.id && (
                     <div className="flex flex-col items-end gap-2">
+                      <Link
+                        href={`/usuarios/${usuario.id}`}
+                        className="text-sm text-slate-600 hover:underline"
+                      >
+                        Editar
+                      </Link>
                       <RestablecerPassword usuarioId={usuario.id} nombre={usuario.nombre} />
                       <EstadoUsuarioToggle usuarioId={usuario.id} activo={usuario.activo} />
                     </div>
