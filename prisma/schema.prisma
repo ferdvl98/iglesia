@@ -390,6 +390,10 @@ model Acta {
   // minúsculas y sin acentos, para que el buscador encuentre "José Muñoz"
   // escribiendo "jose munoz". Se rellena al crear y al corregir el acta.
   textoBusqueda String?
+  // Código impreso en el acta y codificado en su QR. Es independiente del `id`
+  // —ese viaja en las URLs de la aplicación— para que conocer un acta no
+  // permita construir el enlace de verificación de otra.
+  folioVerificacion String? @unique
   anulada      Boolean   @default(false)
   motivoAnulacion String?
   // Un libro parroquial tiene que poder responder quién anuló una partida y

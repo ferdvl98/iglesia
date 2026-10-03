@@ -38,6 +38,6 @@ export const config = {
   // cookies (el ícono se pide incluso antes de iniciar sesión, así que si el
   // middleware lo intercepta la pestaña se queda sin favicon).
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|_next/data|favicon.ico|icon.svg|apple-icon|robots.txt|sitemap.xml).*)",
+    "/((?!api/auth|_next/static|_next/data|favicon.ico|icon.svg|apple-icon|robots.txt|sitemap.xml).*)",
   ],
 };
