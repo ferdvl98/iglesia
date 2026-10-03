@@ -103,7 +103,12 @@ export default async function UsuariosPage() {
                       >
                         Editar
                       </Link>
-                      <RestablecerPassword usuarioId={usuario.id} nombre={usuario.nombre} />
+                      {/* Solo mientras no haya elegido la suya: es cuando el
+                          administrador puede necesitar volver a dictársela.
+                          Después vive en la pantalla de editar usuario. */}
+                      {usuario.debeCambiarPassword && (
+                        <RestablecerPassword usuarioId={usuario.id} nombre={usuario.nombre} />
+                      )}
                       <EstadoUsuarioToggle usuarioId={usuario.id} activo={usuario.activo} />
                     </div>
                   )}

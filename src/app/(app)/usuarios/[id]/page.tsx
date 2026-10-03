@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSesion, puedeAdministrarUsuarios, filtroRoles } from "@/lib/authz";
 import { EditarUsuarioForm } from "./editar-form";
+import { RestablecerPassword } from "../restablecer-password";
 
 export default async function EditarUsuarioPage({
   params,
@@ -42,6 +43,18 @@ export default async function EditarUsuarioPage({
         iglesias={iglesias}
         esSuperadmin={sesion.esSuperAdmin}
       />
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="text-sm font-semibold text-slate-900">Contraseña</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          {usuario.debeCambiarPassword
+            ? "Esta persona todavía no ha elegido su contraseña: sigue usando la temporal que le diste."
+            : "Ya eligió su propia contraseña. Restablécela solo si la olvidó o quedó bloqueada por intentos fallidos."}
+        </p>
+        <div className="mt-3">
+          <RestablecerPassword usuarioId={usuario.id} nombre={usuario.nombre} />
+        </div>
+      </div>
 
       <Link href="/usuarios" className="text-sm text-slate-500 hover:underline">
         ← Volver a usuarios
