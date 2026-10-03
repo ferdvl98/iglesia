@@ -299,6 +299,8 @@ export function PosClient({
           metodoPago={metodoPago}
           onMetodoPagoChange={setMetodoPago}
           onCancelar={() => setMostrarCobro(false)}
+          onConfirmar={confirmarVenta}
+          puedeConfirmar={!pending}
           error={error}
           botonConfirmar={
             <button

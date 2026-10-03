@@ -626,6 +626,8 @@ export function ActaForm({
             setMostrarCobro(false);
           }}
           error={error}
+          onConfirmar={guardar}
+          puedeConfirmar={!pending}
           botonConfirmar={
             <button
               type="button"

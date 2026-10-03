@@ -96,6 +96,8 @@ export function ReimprimirButton({
           onMetodoPagoChange={setMetodoPago}
           onCancelar={() => setMostrarCobro(false)}
           error={error}
+          onConfirmar={confirmar}
+          puedeConfirmar={!pending}
           botonConfirmar={
             <button
               type="button"
