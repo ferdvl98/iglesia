@@ -109,6 +109,26 @@ solo `git push` a `main` despliega todas las instancias, y cada build corre
    las credenciales. A partir de ahí el cliente configura sus parroquias, sus
    sacerdotes y sus usuarios.
 
+### Monitoreo de errores
+
+Sin `SENTRY_DSN` no se inicializa nada: la aplicación funciona igual y el
+desarrollo local no manda ruido al panel. Se configura **por instancia**, de
+modo que cada cliente reporta por separado y se sabe a qué parroquia avisar.
+
+No se envían datos personales (`sendDefaultPii: false`) ni repeticiones de
+sesión: un sistema de actas sacramentales maneja nombres, domicilios y
+filiación, y eso no debe salir de la instalación del cliente.
+
+### Pruebas
+
+```bash
+npm test
+```
+
+Cubren lo que, si se rompe, corrompe el libro o filtra datos: la ubicación de
+una partida en el tomo, los permisos y el aislamiento entre parroquias, la
+normalización de la búsqueda, el folio y la conversión de campos.
+
 ### Licencias y módulos
 
 El precio es **por parroquia**, no por usuario: cada cliente es una instancia y
