@@ -35,11 +35,13 @@ export default auth((req) => {
 });
 
 export const config = {
+  // "monitoring" es el túnel por el que el navegador manda los errores a
+  // Sentry: si se interceptara, se perderían justo los de quien no ha entrado.
   // Lo que queda fuera son rutas públicas por necesidad: el endpoint de
   // NextAuth, los estáticos de Next y los archivos que el navegador pide sin
   // cookies (el ícono se pide incluso antes de iniciar sesión, así que si el
   // middleware lo intercepta la pestaña se queda sin favicon).
   matcher: [
-    "/((?!api/auth|_next/static|_next/data|favicon.ico|icon.svg|apple-icon|robots.txt|sitemap.xml).*)",
+    "/((?!api/auth|_next/static|_next/data|favicon.ico|icon.svg|apple-icon|robots.txt|sitemap.xml|monitoring).*)",
   ],
 };
