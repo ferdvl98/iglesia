@@ -7,12 +7,15 @@ import {
   filtroRoles,
   puedeEditarRol,
 } from "@/lib/authz";
-import { PERMISOS_LABEL } from "./rol-form";
+import { PERMISOS_LABEL, PERMISOS_PUNTO_DE_VENTA } from "@/lib/etiquetas-permisos";
+import { moduloPuntoDeVentaActivo } from "@/lib/modulos";
 import { EliminarRolBoton } from "./eliminar-rol-boton";
 
 export default async function RolesPage() {
   const sesion = await requireSesion();
   if (!puedeAdministrarRoles(sesion)) redirect("/dashboard");
+
+  const moduloPuntoDeVenta = moduloPuntoDeVentaActivo();
 
   const roles = await prisma.rol.findMany({
     where: filtroRoles(sesion),
@@ -25,15 +28,15 @@ export default async function RolesPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Roles</h1>
-          <p className="text-sm text-slate-500">
+          <p className="max-w-prose text-sm text-slate-500">
             Define qué puede hacer cada rol y asígnalo a los usuarios. El rol Administrador
-            siempre existe y tiene todos los permisos. Los marcados como
-            Diócesis son plantillas que solo edita el administrador general.
+            siempre existe y tiene todos los permisos. Los marcados como Diócesis son
+            plantillas que solo edita el administrador general.
           </p>
         </div>
         <Link
           href="/roles/nuevo"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="shrink-0 whitespace-nowrap rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
         >
           Nuevo rol
         </Link>
@@ -68,7 +71,13 @@ export default async function RolesPage() {
                 <td className="px-4 py-2 text-slate-600">
                   {rol.esAdministrador
                     ? "Todos los permisos"
-                    : rol.permisos.map((p) => PERMISOS_LABEL[p]).join(", ") || "-"}
+                    : rol.permisos
+                        // Sin el módulo contratado, su permiso no abre nada y
+                        // tampoco aparece en el formulario: mostrarlo aquí
+                        // confundiría más que informar.
+                        .filter((p) => moduloPuntoDeVenta || !PERMISOS_PUNTO_DE_VENTA.includes(p))
+                        .map((p) => PERMISOS_LABEL[p])
+                        .join(", ") || "-"}
                 </td>
                 <td className="px-4 py-2">{rol._count.usuarios}</td>
                 <td className="px-4 py-2 text-right">

@@ -3,18 +3,8 @@
 import { useActionState } from "react";
 import { Campo } from "@/components/form-fields";
 import type { Permiso } from "@prisma/client";
+import { PERMISOS_LABEL, PERMISOS_PUNTO_DE_VENTA } from "@/lib/etiquetas-permisos";
 
-export const PERMISOS_LABEL: Record<Permiso, string> = {
-  REGISTRAR_ACTAS: "Registrar, reimprimir y anular actas",
-  CONSULTAR_ACTAS: "Consultar el listado y detalle de actas",
-  PUNTO_DE_VENTA: "Vender en el punto de venta",
-  ADMINISTRAR_CATALOGO: "Administrar catálogo, ajustes y transferencias de inventario",
-  CONFIGURAR: "Configurar precios de actas",
-  VER_INGRESOS: "Ver los reportes de ingresos y descargarlos",
-  ADMINISTRAR_MINISTROS: "Administrar el catálogo de sacerdotes/ministros",
-};
-
-const PERMISOS_PUNTO_DE_VENTA: Permiso[] = ["PUNTO_DE_VENTA", "ADMINISTRAR_CATALOGO"];
 
 type EstadoFormulario = { error: string } | null;
 
