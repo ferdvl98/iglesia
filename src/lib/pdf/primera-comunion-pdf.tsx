@@ -147,7 +147,9 @@ export function PrimeraComunionActaPdf({ acta, qr }: { acta: ActaPrimeraComunion
         <View style={styles.filaDatos}>
           <View style={styles.columnaNombre}>
             <Text style={styles.etiquetaNombre}>NOMBRE:</Text>
-            <Text style={styles.valorNombre}>{v(mayus(pc.nombre))}</Text>
+            {/* El margen del libro sirve para localizar la partida hojeando,
+                así que lleva el nombre completo y no solo el de pila. */}
+            <Text style={styles.valorNombre}>{v(mayus(nombreCompleto))}</Text>
           </View>
 
           <View style={styles.columnaDerecha}>
@@ -167,6 +169,12 @@ export function PrimeraComunionActaPdf({ acta, qr }: { acta: ActaPrimeraComunion
         <Text style={styles.centrado}>
           Sus Padrinos: <Dato valor={mayus(pc.padrino)} /> y <Dato valor={mayus(pc.madrina)} />.
         </Text>
+
+        {pc.catequista && (
+          <Text style={styles.centrado}>
+            Su catequista: <Dato valor={mayus(pc.catequista)} />.
+          </Text>
+        )}
 
         <View style={styles.firmaCentrada}>
           <Text style={styles.doyFeTexto}>Doy fe:</Text>
