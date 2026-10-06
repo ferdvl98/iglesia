@@ -75,8 +75,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const iglesiaNombre = sesion.iglesiaNombre ?? "Todas las iglesias";
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white md:block">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      <aside className="hidden w-60 shrink-0 overflow-y-auto border-r border-slate-200 bg-white md:block">
         <div className="flex items-center gap-2.5 border-b border-slate-200 px-5 py-4">
           <Logo size={26} className="shrink-0" />
           <div className="min-w-0">
@@ -96,16 +96,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
       </aside>
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5 md:px-6">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5 md:px-6">
           <MobileNav links={links} iglesiaNombre={iglesiaNombre} />
           <MenuUsuario
             nombre={sesion.nombre ?? ""}
             rol={sesion.esSuperAdmin ? "SUPERADMIN" : (sesion.rolNombre ?? "Sin rol")}
           />
         </header>
-        <main className="min-w-0 flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
-        <Footer />
+        <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <main className="p-4 md:p-6">{children}</main>
+          <Footer />
+        </div>
       </div>
     </div>
   );
