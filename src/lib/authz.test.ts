@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   puedeEscribir,
+  puedeCorregirActas,
+  puedeAnularActas,
   puedeConsultarActas,
   puedeVerIngresos,
   puedeUsarPuntoDeVenta,
@@ -46,6 +48,29 @@ describe("permisos sueltos", () => {
   it("el SUPERADMIN también", () => {
     const s = sesion({ esSuperAdmin: true, permisos: [] });
     expect(puedeEscribir(s)).toBe(true);
+  });
+});
+
+describe("corregir y anular van aparte de registrar", () => {
+  it("quien registra no corrige ni anula por ello", () => {
+    const s = sesion({ permisos: ["REGISTRAR_ACTAS", "CONSULTAR_ACTAS"] });
+    expect(puedeEscribir(s)).toBe(true);
+    expect(puedeCorregirActas(s)).toBe(false);
+    expect(puedeAnularActas(s)).toBe(false);
+  });
+
+  it("se puede anular sin poder registrar", () => {
+    const s = sesion({ permisos: ["CONSULTAR_ACTAS", "ANULAR_ACTAS"] });
+    expect(puedeAnularActas(s)).toBe(true);
+    expect(puedeEscribir(s)).toBe(false);
+    expect(puedeCorregirActas(s)).toBe(false);
+  });
+
+  it("el rol Administrador conserva las tres", () => {
+    const s = sesion({ esAdministrador: true, permisos: [] });
+    expect(puedeEscribir(s)).toBe(true);
+    expect(puedeCorregirActas(s)).toBe(true);
+    expect(puedeAnularActas(s)).toBe(true);
   });
 });
 

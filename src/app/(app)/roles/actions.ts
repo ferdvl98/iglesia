@@ -8,6 +8,8 @@ import type { Permiso } from "@prisma/client";
 
 const PERMISOS_VALIDOS: Permiso[] = [
   "REGISTRAR_ACTAS",
+  "CORREGIR_ACTAS",
+  "ANULAR_ACTAS",
   "CONSULTAR_ACTAS",
   "PUNTO_DE_VENTA",
   "ADMINISTRAR_CATALOGO",

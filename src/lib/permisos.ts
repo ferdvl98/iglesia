@@ -33,6 +33,19 @@ export function puedeEscribir(sesion: SesionActiva) {
   return tienePermiso(sesion, "REGISTRAR_ACTAS");
 }
 
+/**
+ * Corregir y anular van aparte de registrar: no es lo mismo capturar una
+ * partida que enmendarla o darla de baja, y una parroquia puede querer
+ * confiarle lo primero a alguien sin darle lo segundo.
+ */
+export function puedeCorregirActas(sesion: SesionActiva) {
+  return tienePermiso(sesion, "CORREGIR_ACTAS");
+}
+
+export function puedeAnularActas(sesion: SesionActiva) {
+  return tienePermiso(sesion, "ANULAR_ACTAS");
+}
+
 export function puedeConsultarActas(sesion: SesionActiva) {
   return tienePermiso(sesion, "CONSULTAR_ACTAS");
 }

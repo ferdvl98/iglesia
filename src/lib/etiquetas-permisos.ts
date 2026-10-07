@@ -9,7 +9,9 @@ import type { Permiso } from "@prisma/client";
  * roles mostraba ", ," en vez de los permisos.
  */
 export const PERMISOS_LABEL: Record<Permiso, string> = {
-  REGISTRAR_ACTAS: "Registrar, reimprimir y anular actas",
+  REGISTRAR_ACTAS: "Registrar y reimprimir actas",
+  CORREGIR_ACTAS: "Corregir los datos de un acta ya registrada",
+  ANULAR_ACTAS: "Anular actas",
   CONSULTAR_ACTAS: "Consultar el listado y detalle de actas",
   PUNTO_DE_VENTA: "Vender en el punto de venta",
   ADMINISTRAR_CATALOGO: "Administrar catálogo, ajustes y transferencias de inventario",

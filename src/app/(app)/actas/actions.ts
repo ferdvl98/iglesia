@@ -5,7 +5,12 @@ import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import type { TipoActa as TipoActaPrisma, MetodoPago, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeEscribir } from "@/lib/authz";
+import {
+  requireSesion,
+  puedeEscribir,
+  puedeCorregirActas,
+  puedeAnularActas,
+} from "@/lib/authz";
 import {
   bautizoSchema,
   primeraComunionSchema,
@@ -604,7 +609,7 @@ export async function actualizarNotasMarginalesAction(
 
 async function anularActa(actaId: string, motivo: string) {
   const sesion = await requireSesion();
-  if (!puedeEscribir(sesion)) throw new Error("No tienes permiso para anular actas.");
+  if (!puedeAnularActas(sesion)) throw new Error("No tienes permiso para anular actas.");
 
   const acta = await prisma.acta.findUnique({ where: { id: actaId } });
   if (!acta) throw new Error("Acta no encontrada.");
@@ -712,7 +717,7 @@ export async function corregirActa(
   formData: FormData,
 ): Promise<EstadoFormulario> {
   const sesion = await requireSesion();
-  if (!puedeEscribir(sesion)) return { error: "No tienes permiso para corregir actas." };
+  if (!puedeCorregirActas(sesion)) return { error: "No tienes permiso para corregir actas." };
 
   const actaId = formData.get("actaId");
   if (typeof actaId !== "string") return { error: "Acta inválida." };

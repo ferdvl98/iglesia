@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeEscribir, puedeConsultarActas } from "@/lib/authz";
+import {
+  requireSesion,
+  puedeEscribir,
+  puedeConsultarActas,
+  puedeCorregirActas,
+  puedeAnularActas,
+} from "@/lib/authz";
 import { TIPO_ACTA_LABEL, TIPO_ACTA_RUTA } from "@/lib/tipos-acta";
 import { etiquetaDeCampo } from "@/lib/campos-acta";
 import { formatearFecha as fmt } from "@/lib/fecha";
@@ -61,6 +67,8 @@ export default async function ActaDetallePage({
   }
 
   const permisoEscritura = puedeEscribir(sesion);
+  const permisoCorregir = puedeCorregirActas(sesion);
+  const permisoAnular = puedeAnularActas(sesion);
   const config = await obtenerConfiguracion(acta.iglesiaId, acta.tipo);
 
   return (
@@ -73,17 +81,19 @@ export default async function ActaDetallePage({
           <p className="text-sm text-slate-500">{acta.iglesia.nombre}</p>
         </div>
         <div className="text-right">
-          {permisoEscritura && (
+          {(permisoEscritura || permisoCorregir) && (
             <div className="mb-2">
-              <Link
-                href={`/actas/nueva/${TIPO_ACTA_RUTA[acta.tipo]}?libro=${encodeURIComponent(
-                  acta.libro,
-                )}${modo === "historico" ? "&historico=1" : ""}`}
-                className="inline-block rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-              >
-                Registrar otra de {TIPO_ACTA_LABEL[acta.tipo].toLowerCase()}
-              </Link>
-              {!acta.anulada && (
+              {permisoEscritura && (
+                <Link
+                  href={`/actas/nueva/${TIPO_ACTA_RUTA[acta.tipo]}?libro=${encodeURIComponent(
+                    acta.libro,
+                  )}${modo === "historico" ? "&historico=1" : ""}`}
+                  className="inline-block rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  Registrar otra de {TIPO_ACTA_LABEL[acta.tipo].toLowerCase()}
+                </Link>
+              )}
+              {permisoCorregir && !acta.anulada && (
                 <Link
                   href={`/actas/${acta.id}/editar`}
                   className="ml-2 inline-block rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -324,7 +334,7 @@ export default async function ActaDetallePage({
         </div>
       )}
 
-      {permisoEscritura && !acta.anulada && (
+      {permisoAnular && !acta.anulada && (
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <h2 className="mb-2 text-sm font-semibold text-slate-900">Anular acta</h2>
           <p className="mb-3 text-sm text-slate-500">

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireSesion, puedeEscribir, puedeAdministrarMinistros } from "@/lib/authz";
+import { requireSesion, puedeCorregirActas, puedeAdministrarMinistros } from "@/lib/authz";
 import { TIPO_ACTA_LABEL } from "@/lib/tipos-acta";
 import { RELACION_POR_TIPO, camposDelSacramento, comoTexto } from "@/lib/campos-acta";
 import { ActaForm } from "../../nueva/[tipoRuta]/acta-form";
@@ -9,7 +9,7 @@ import { ActaForm } from "../../nueva/[tipoRuta]/acta-form";
 export default async function CorregirActaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const sesion = await requireSesion();
-  if (!puedeEscribir(sesion)) redirect(`/actas/${id}`);
+  if (!puedeCorregirActas(sesion)) redirect(`/actas/${id}`);
 
   const acta = await prisma.acta.findUnique({
     where: { id },
