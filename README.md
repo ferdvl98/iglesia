@@ -93,19 +93,73 @@ solo `git push` a `main` despliega todas las instancias, y cada build corre
 
 ### Alta de un cliente
 
-1. Crear la base de datos del cliente y copiar su cadena de conexión.
-2. Crear un proyecto nuevo en Vercel apuntando a este repositorio.
+Las instancias se numeran: `control-iglesia-001`, `-002`, … con el cero a la
+izquierda para que ordenen bien pasada la décima. El número se usa igual para
+el proyecto de Vercel y el de Neon, y no cambia nunca aunque la parroquia sí
+—por fusión, por cambio de párroco o de nombre—. Qué número corresponde a qué
+parroquia se lleva en `INSTANCIAS.md`; un número sin ese mapa no sirve de nada
+el día que algo falle.
+
+1. Crear la base del cliente:
+
+   ```bash
+   neonctl projects create --name control-iglesia-00N --region-id aws-us-east-2
+   ```
+
+   **Revisar el autoescalado del endpoint.** `neonctl` lo crea fijo en
+   `0.25 – 0.25 CU`, mientras que un proyecto creado desde el panel nace en
+   `0.25 – 2`. Fijo no falla, pero no crece en las operaciones que tocan todo
+   el archivo de golpe —el respaldo, una exportación grande, una jornada de
+   captura histórica—. Se iguala con un `PATCH` al endpoint y otro al proyecto,
+   para que las ramas futuras lo hereden.
+
+2. Crear el proyecto de Vercel y conectarlo a este repositorio:
+
+   ```bash
+   vercel project add control-iglesia-00N
+   vercel link --project control-iglesia-00N --yes
+   vercel git connect https://github.com/ferdvl98/iglesia.git --yes
+   ```
+
+   El framework no hay que tocarlo: `vercel.json` lo fija. Sin ese archivo, un
+   proyecto creado por CLI nace con el preset en «Other» y Vercel publica la
+   aplicación como sitio estático.
+
+   `vercel link` reescribe `.vercel/project.json` y deja un `.env.local`.
+   Respaldar el enlace anterior antes, y restaurarlo al terminar.
+
 3. Configurar sus variables de entorno:
 
    | Variable | Para qué |
    |---|---|
    | `DATABASE_URL` | La base de ese cliente, y de nadie más |
    | `AUTH_SECRET` | Propio de la instancia (`openssl rand -base64 32`) |
-   | `NEXTAUTH_URL` | El dominio de esa instancia |
-   | `LICENCIAS_USUARIOS` | Usuarios activos contratados |
+   | `AUTH_URL` | El dominio de esa instancia, sin barra final |
+   | `LICENCIAS_USUARIOS` | Tope de usuarios activos (baranda, no precio) |
+   | `MODULO_PUNTO_DE_VENTA` | `false` salvo que lo haya contratado |
+
+   Es `AUTH_URL`, no `NEXTAUTH_URL`: NextAuth v5 lee la primera. Y debe
+   apuntar al dominio **definitivo** —cambiarlo después exige volver a
+   desplegar, y mientras tanto el login falla—.
+
+   Se cargan sin que el valor pase por el historial de la terminal:
+
+   ```bash
+   openssl rand -base64 32 | tr -d '\n' | vercel env add AUTH_SECRET production
+   ```
+
+   Vercel las guarda cifradas, así que después no se pueden releer ni por CLI.
 
 4. Desplegar. Las migraciones se aplican solas sobre la base vacía.
-5. Abrir `/configuracion-inicial`, crear el administrador general y entregarle
+
+   Ojo: el push despliega **todas** las instancias conectadas al repositorio,
+   no sólo la nueva.
+
+5. Revisar los roles que nacen con la instancia. Hoy `Capturista` nace con
+   `CORREGIR_ACTAS` y `ANULAR_ACTAS`, que es lo contrario de lo que suele
+   querer una parroquia; quitarlos desde **Roles** antes de entregar.
+
+6. Abrir `/configuracion-inicial`, crear el administrador general y entregarle
    las credenciales. A partir de ahí el cliente configura sus parroquias, sus
    sacerdotes y sus usuarios.
 
