@@ -76,6 +76,10 @@ export function ActaForm({
   // y sin orden, así que la partida la escribe el capturista.
   const [historico, setHistorico] = useState(historicoInicial);
   const [partidaManual, setPartidaManual] = useState("");
+  // En libros viejos con partidas saltadas, la foja calculada se desfasa del libro físico, así que
+  // en captura histórica el capturista puede escribir foja y posición tal como vienen en el libro.
+  const [fojaManual, setFojaManual] = useState("");
+  const [posicionManual, setPosicionManual] = useState("");
 
   const escribiendoLibroNuevo = libros.length === 0 || libroSeleccionado === NUEVO_LIBRO;
   const libro = escribiendoLibroNuevo ? nuevoLibro.trim() : libroSeleccionado;
@@ -85,8 +89,12 @@ export function ActaForm({
     : (infoLibroSeleccionado?.siguientePartida ?? 1);
   const partidaEfectiva =
     historico && /^\d+$/.test(partidaManual) ? Number(partidaManual) : siguientePartida;
-  const foja = Math.ceil(partidaEfectiva / partidasPorFoja);
-  const posicion = partidaEfectiva - (foja - 1) * partidasPorFoja;
+  const fojaCalculada = Math.ceil(partidaEfectiva / partidasPorFoja);
+  const posicionCalculada = partidaEfectiva - (fojaCalculada - 1) * partidasPorFoja;
+  // La foja/posición escritas a mano (solo en histórico) mandan sobre las calculadas.
+  const foja = historico && /^\d+$/.test(fojaManual) ? Number(fojaManual) : fojaCalculada;
+  const posicion =
+    historico && /^\d+$/.test(posicionManual) ? Number(posicionManual) : posicionCalculada;
   const libroSeleccionadoLleno = !escribiendoLibroNuevo && infoLibroSeleccionado?.lleno;
 
   // No se le cobra a la parroquia por digitalizar partidas que ya están en sus
@@ -244,28 +252,67 @@ export function ActaForm({
             </label>
 
             {historico && (
-              <div className="mt-2">
-                <label
-                  htmlFor="numeroActaManual"
-                  className="block text-xs font-medium text-slate-600"
-                >
-                  No. de partida en el libro <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="numeroActaManual"
-                  name="numeroActaManual"
-                  type="number"
-                  min="1"
-                  required
-                  value={partidaManual}
-                  onChange={(e) => setPartidaManual(e.target.value)}
-                  className="mt-1 w-40 rounded-md border border-slate-300 px-3 py-2 text-sm"
-                />
-                {/^\d+$/.test(partidaManual) && (
-                  <p className="mt-1 text-xs text-slate-500">
-                    Foja {foja}, posición {posicion} de {partidasPorFoja}
-                  </p>
-                )}
+              <div className="mt-2 flex flex-col gap-3">
+                <div>
+                  <label
+                    htmlFor="numeroActaManual"
+                    className="block text-xs font-medium text-slate-600"
+                  >
+                    No. de partida en el libro <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="numeroActaManual"
+                    name="numeroActaManual"
+                    type="number"
+                    min="1"
+                    required
+                    value={partidaManual}
+                    onChange={(e) => setPartidaManual(e.target.value)}
+                    className="mt-1 w-40 rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-4">
+                  <div>
+                    <label htmlFor="fojaManual" className="block text-xs font-medium text-slate-600">
+                      Foja
+                    </label>
+                    <input
+                      id="fojaManual"
+                      name="fojaManual"
+                      type="number"
+                      min="1"
+                      value={fojaManual}
+                      onChange={(e) => setFojaManual(e.target.value)}
+                      placeholder={String(fojaCalculada)}
+                      className="mt-1 w-28 rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="posicionManual" className="block text-xs font-medium text-slate-600">
+                      Posición en la foja
+                    </label>
+                    <input
+                      id="posicionManual"
+                      name="posicionManual"
+                      type="number"
+                      min="1"
+                      max={partidasPorFoja}
+                      value={posicionManual}
+                      onChange={(e) => setPosicionManual(e.target.value)}
+                      placeholder={String(posicionCalculada)}
+                      className="mt-1 w-28 rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  Déjalas en blanco para calcularlas a partir de la partida. Llénalas solo si el libro
+                  trae partidas saltadas y la foja no coincide.
+                  {/^\d+$/.test(partidaManual) && (
+                    <> Quedará en <strong>foja {foja}, posición {posicion} de {partidasPorFoja}</strong>.</>
+                  )}
+                </p>
               </div>
             )}
           </div>

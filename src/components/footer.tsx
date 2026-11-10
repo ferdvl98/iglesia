@@ -3,7 +3,7 @@
 export function Footer() {
   return (
     <footer className="px-4 py-4 text-center text-xs text-slate-400 md:px-6">
-      © {new Date().getFullYear()} Davilar Software
+      © {new Date().getFullYear()} Darino
     </footer>
   );
 }

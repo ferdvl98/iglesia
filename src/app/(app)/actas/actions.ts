@@ -184,6 +184,14 @@ async function crearActaConUbicacion(opts: {
    * libros.
    */
   numeroActaManual: number | null;
+  /**
+   * Foja y posición escritas a mano, solo para captura histórica. La foja normalmente se calcula a
+   * partir de la partida, pero en libros viejos con partidas saltadas (una que no se usó y el número
+   * siguió corrido abajo) ese cálculo se desfasa del libro físico. Cuando vienen, mandan sobre el
+   * cálculo para que el acta quede idéntica al libro. En captura normal se ignoran.
+   */
+  fojaManual: number | null;
+  posicionManual: number | null;
   detalle: Pick<
     Prisma.ActaCreateInput,
     "bautizo" | "primeraComunion" | "confirmacion" | "matrimonio"
@@ -219,7 +227,27 @@ async function crearActaConUbicacion(opts: {
         `El libro ${opts.libro} tiene ${config.fojasPorLibro} fojas, o sea ${tope} partidas, y la ${numeroActa} queda fuera. Revisa el número o abre un libro nuevo.`,
       );
     }
-    const { foja, posicionEnFoja } = calcularUbicacion(numeroActa, config.partidasPorFoja);
+    // La foja y la posición se calculan de la partida, salvo en captura histórica donde el
+    // capturista las puede fijar a mano para copiar un libro con partidas saltadas.
+    const calculada = calcularUbicacion(numeroActa, config.partidasPorFoja);
+    let foja = calculada.foja;
+    let posicionEnFoja = calculada.posicionEnFoja;
+    if (esHistorico && opts.fojaManual !== null) {
+      if (opts.fojaManual < 1 || opts.fojaManual > config.fojasPorLibro) {
+        throw new Error(
+          `La foja ${opts.fojaManual} queda fuera del libro ${opts.libro}, que tiene ${config.fojasPorLibro} fojas.`,
+        );
+      }
+      foja = opts.fojaManual;
+    }
+    if (esHistorico && opts.posicionManual !== null) {
+      if (opts.posicionManual < 1 || opts.posicionManual > config.partidasPorFoja) {
+        throw new Error(
+          `La posición ${opts.posicionManual} queda fuera de la foja: cada foja tiene ${config.partidasPorFoja} posiciones.`,
+        );
+      }
+      posicionEnFoja = opts.posicionManual;
+    }
 
     try {
       // El acta y su cobro se crean juntos o no se crean: antes, si fallaba el
@@ -323,6 +351,27 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
     }
   }
 
+  // Foja y posición opcionales de la captura histórica: para libros con partidas saltadas, donde la
+  // foja calculada ya no coincide con la del libro físico. Solo aplican en captura histórica.
+  function leerEnteroOpcional(campo: string): number | null | { error: string } {
+    const texto = formData.get(campo);
+    if (typeof texto !== "string" || texto.trim() === "") return null;
+    if (!/^\d+$/.test(texto.trim())) return { error: `El campo "${campo}" debe ser un número entero.` };
+    const n = Number(texto.trim());
+    if (n < 1) return { error: `El campo "${campo}" debe ser mayor que cero.` };
+    return n;
+  }
+  let fojaManual: number | null = null;
+  let posicionManual: number | null = null;
+  if (numeroActaManual !== null) {
+    const f = leerEnteroOpcional("fojaManual");
+    if (f !== null && typeof f === "object") return f;
+    fojaManual = f;
+    const p = leerEnteroOpcional("posicionManual");
+    if (p !== null && typeof p === "object") return p;
+    posicionManual = p;
+  }
+
   const base = datosBase(formData);
   const { ministroId, ministroTexto } = await resolverMinistro(
     formData,
@@ -357,6 +406,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         creadoPorId: sesion.id,
         metodoPago,
         numeroActaManual,
+        fojaManual,
+        posicionManual,
         detalle: {
           bautizo: {
             create: {
@@ -401,6 +452,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         creadoPorId: sesion.id,
         metodoPago,
         numeroActaManual,
+        fojaManual,
+        posicionManual,
         detalle: {
           primeraComunion: {
             create: {
@@ -450,6 +503,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         creadoPorId: sesion.id,
         metodoPago,
         numeroActaManual,
+        fojaManual,
+        posicionManual,
         detalle: {
           confirmacion: {
             create: {
@@ -508,6 +563,8 @@ export async function crearActa(formData: FormData): Promise<ResultadoCrearActa>
         creadoPorId: sesion.id,
         metodoPago,
         numeroActaManual,
+        fojaManual,
+        posicionManual,
         detalle: {
           matrimonio: {
             create: {
